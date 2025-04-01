@@ -109,9 +109,4 @@ The list of servers to be automatically installed is defined in `mcp_core/server
   "disabled": False,  # Whether the server is disabled
   "autoApprove": []  # List of tools to auto-approve
 }
-
-
-
-
-
-
+```
