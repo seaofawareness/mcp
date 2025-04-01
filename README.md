@@ -9,6 +9,19 @@ A suite of specialized MCP servers that bring AWS best practices directly to you
 
 This monorepo contains the following MCP servers:
 
+### Core MCP Server
+
+[![PyPI version](https://img.shields.io/pypi/v/awslabs.core-mcp-server.svg)](https://pypi.org/project/awslabs.core-mcp-server/)
+
+A server for managing and coordinating other MCP servers.
+
+- Automatic installation and configuration of MCP servers
+- Centralized management of MCP server environments
+- Seamless integration with AWS services
+- Simplified setup for complex MCP server configurations
+
+[Learn more](src/core-mcp-server/README.md) | [Documentation](https://awslabs.github.io/mcp/servers/core-mcp-server/)
+
 ### Bedrock Knowledge Bases Retrieval MCP Server
 
 [![PyPI version](https://img.shields.io/pypi/v/awslabs.bedrock-kb-retrieval-mcp-server.svg)](https://pypi.org/project/awslabs.bedrock-kb-retrieval-mcp-server/)
