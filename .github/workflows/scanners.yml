@@ -20,7 +20,7 @@ jobs:
     - name: detect-secrets
       id: detect-secrets
       run: |
-        detect-secrets --baseline .secrets.baseline
+        detect-secrets scan --baseline .secrets.baseline
 
 #   - name: Run PSScriptAnalyzer
 #   uses: microsoft/psscriptanalyzer-action@v1.0
