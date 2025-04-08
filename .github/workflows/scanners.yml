@@ -19,13 +19,13 @@ jobs:
     - uses: actions/setup-python@8d9ed9ac5c53483de85588cdf95a591a75ab9f55 #v5.5.0
     - run: pip install detect-secrets
     - name: detect-secrets
-        id: detect-secrets
-        run: |
-          detect-secrets --baseline .secrets.baseline
+      id: detect-secrets
+      run: |
+        detect-secrets --baseline .secrets.baseline
 
 #   - name: Run PSScriptAnalyzer
 #   uses: microsoft/psscriptanalyzer-action@v1.0
 #   with:
 #    path: .\
-#    recurse: true 
+#    recurse: true
 #    output: results.sarif
