@@ -43,7 +43,7 @@ from cdklabs.generative_ai_cdk_constructs import (
 
 pineconevs = pinecone.PineconeVectorStore(
             connection_string='https://your-index-1234567.svc.gcp-starter.pinecone.io',
-            credentials_secret_arn='arn:aws:secretsmanager:your-region:123456789876:secret:your-key-name',
+            credentials_secret_arn='arn:aws:secretsmanager:your-region:123456789876:secret:your-key-name', # pragma: allowlist secret
             text_field='question',
             metadata_field='metadata'
         )
