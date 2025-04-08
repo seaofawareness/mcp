@@ -1,0 +1,31 @@
+name: Scanners
+
+on:
+  push: [ "main" ]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  read-only
+
+jobs:
+
+  secrets-scanner:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 #v4.2.2
+    - uses: actions/setup-python@8d9ed9ac5c53483de85588cdf95a591a75ab9f55 #v5.5.0
+    - run: pip install detect-secrets
+    - name: detect-secrets
+        id: detect-secrets
+        run: |
+          detect-secrets --baseline .secrets.baseline
+
+#   - name: Run PSScriptAnalyzer
+#   uses: microsoft/psscriptanalyzer-action@v1.0
+#   with:
+#    path: .\
+#    recurse: true 
+#    output: results.sarif
