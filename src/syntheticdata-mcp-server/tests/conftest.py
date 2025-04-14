@@ -4,10 +4,10 @@ import boto3
 import os
 import pytest
 import tempfile
+from .test_constants import TEST_AWS_CONFIG, TEST_AWS_CREDENTIALS
 from botocore.client import BaseClient
 from moto import mock_aws
 from typing import Dict, Generator
-from .test_constants import TEST_AWS_CREDENTIALS, TEST_AWS_CONFIG
 
 
 @pytest.fixture
