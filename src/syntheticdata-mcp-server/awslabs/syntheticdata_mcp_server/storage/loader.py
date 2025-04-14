@@ -21,14 +21,10 @@ class UnifiedDataLoader:
 
     def __init__(self):
         """Initialize with supported storage targets."""
-        self.targets = {
-            's3': S3Target()
-        }
+        self.targets = {'s3': S3Target()}
 
     async def load_data(
-        self,
-        data: Dict[str, List[Dict]],
-        targets: List[Dict[str, Any]]
+        self, data: Dict[str, List[Dict]], targets: List[Dict[str, Any]]
     ) -> Dict[str, Any]:
         """Load data to multiple storage targets.
 
@@ -48,7 +44,7 @@ class UnifiedDataLoader:
             if target_type not in self.targets:
                 results[target_type] = {
                     'success': False,
-                    'error': f"Unsupported target type: {target_type}"
+                    'error': f'Unsupported target type: {target_type}',
                 }
                 continue
 
@@ -57,10 +53,7 @@ class UnifiedDataLoader:
             # Validate configuration
             is_valid = await target.validate(data, target_config['config'])
             if not is_valid:
-                results[target_type] = {
-                    'success': False,
-                    'error': "Invalid configuration or data"
-                }
+                results[target_type] = {'success': False, 'error': 'Invalid configuration or data'}
                 continue
 
             # Load data
@@ -68,12 +61,6 @@ class UnifiedDataLoader:
                 result = await target.load(data, target_config['config'])
                 results[target_type] = result
             except Exception as e:
-                results[target_type] = {
-                    'success': False,
-                    'error': str(e)
-                }
+                results[target_type] = {'success': False, 'error': str(e)}
 
-        return {
-            'success': all(r['success'] for r in results.values()),
-            'results': results
-        }
+        return {'success': all(r['success'] for r in results.values()), 'results': results}

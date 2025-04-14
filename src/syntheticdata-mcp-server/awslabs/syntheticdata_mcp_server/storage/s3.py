@@ -72,36 +72,24 @@ class S3Target(DataTarget):
         """
         try:
             # Convert to DataFrames
-            dataframes = {
-                name: pd.DataFrame(records)
-                for name, records in data.items()
-            }
+            dataframes = {name: pd.DataFrame(records) for name, records in data.items()}
 
             # Apply partitioning if enabled
             if config.get('partitioning', {}).get('enabled'):
-                partitioned_data = self._apply_partitioning(
-                    dataframes,
-                    config['partitioning']
-                )
+                partitioned_data = self._apply_partitioning(dataframes, config['partitioning'])
             else:
-                partitioned_data = {
-                    name: {'': df} for name, df in dataframes.items()
-                }
+                partitioned_data = {name: {'': df} for name, df in dataframes.items()}
 
             # Process each table and partition
             upload_tasks = []
             for table_name, partitions in partitioned_data.items():
                 for partition_key, df in partitions.items():
                     # Construct S3 key
-                    partition_path = f"{partition_key}/" if partition_key else ""
-                    key = f"{config['prefix']}{table_name}/{partition_path}{table_name}.{config['format']}"
+                    partition_path = f'{partition_key}/' if partition_key else ''
+                    key = f'{config["prefix"]}{table_name}/{partition_path}{table_name}.{config["format"]}'
 
                     # Convert to specified format
-                    content = self._convert_format(
-                        df,
-                        config['format'],
-                        config.get('compression')
-                    )
+                    content = self._convert_format(df, config['format'], config.get('compression'))
 
                     # Create upload task
                     task = self._upload_to_s3(
@@ -109,7 +97,7 @@ class S3Target(DataTarget):
                         config['bucket'],
                         key,
                         config.get('storage', {}),
-                        config.get('metadata', {})
+                        config.get('metadata', {}),
                     )
                     upload_tasks.append(task)
 
@@ -119,20 +107,14 @@ class S3Target(DataTarget):
             return {
                 'success': True,
                 'uploaded_files': results,
-                'total_records': sum(len(df) for df in dataframes.values())
+                'total_records': sum(len(df) for df in dataframes.values()),
             }
 
         except Exception as e:
-            return {
-                'success': False,
-                'error': str(e)
-            }
+            return {'success': False, 'error': str(e)}
 
     def _convert_format(
-        self,
-        df: pd.DataFrame,
-        format: str,
-        compression: Optional[str] = None
+        self, df: pd.DataFrame, format: str, compression: Optional[str] = None
     ) -> bytes:
         """Convert DataFrame to specified format.
 
@@ -153,12 +135,10 @@ class S3Target(DataTarget):
             json_data = df.to_json(orient='records')
             return json_data.encode() if json_data is not None else b''
         else:
-            raise ValueError(f"Unsupported format: {format}")
+            raise ValueError(f'Unsupported format: {format}')
 
     def _apply_partitioning(
-        self,
-        dataframes: Dict[str, pd.DataFrame],
-        partition_config: Dict[str, Any]
+        self, dataframes: Dict[str, pd.DataFrame], partition_config: Dict[str, Any]
     ) -> Dict[str, Dict[str, pd.DataFrame]]:
         """Apply partitioning to DataFrames.
 
@@ -200,12 +180,7 @@ class S3Target(DataTarget):
         return partitioned_data
 
     async def _upload_to_s3(
-        self,
-        content: bytes,
-        bucket: str,
-        key: str,
-        storage_config: Dict,
-        metadata: Dict
+        self, content: bytes, bucket: str, key: str, storage_config: Dict, metadata: Dict
     ) -> Dict:
         """Upload content to S3 with specified configuration.
 
@@ -229,16 +204,15 @@ class S3Target(DataTarget):
                     Body=content,
                     StorageClass=storage_config.get('class', 'STANDARD'),
                     Metadata=metadata,
-                    **({'ServerSideEncryption': storage_config['encryption']} if storage_config.get('encryption') else {})
-                )
+                    **(
+                        {'ServerSideEncryption': storage_config['encryption']}
+                        if storage_config.get('encryption')
+                        else {}
+                    ),
+                ),
             )
 
-            return {
-                'bucket': bucket,
-                'key': key,
-                'size': len(content),
-                'metadata': metadata
-            }
+            return {'bucket': bucket, 'key': key, 'size': len(content), 'metadata': metadata}
 
         except Exception as e:
-            raise Exception(f"Failed to upload to S3: {str(e)}")
+            raise Exception(f'Failed to upload to S3: {str(e)}')

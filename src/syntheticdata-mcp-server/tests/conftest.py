@@ -6,7 +6,7 @@ import os
 import pytest
 import tempfile
 from typing import Dict, Generator
-from boto3.client import BaseClient
+from botocore.client import BaseClient
 
 
 @pytest.fixture

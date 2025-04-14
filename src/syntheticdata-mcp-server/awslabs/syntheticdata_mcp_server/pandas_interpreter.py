@@ -10,9 +10,58 @@
 # and limitations under the License.
 
 
+import ast
 import os
 import pandas as pd
 from typing import Any, Dict, List
+
+
+def safe_eval_dataframe(node: ast.AST) -> pd.DataFrame:
+    """Safely evaluate a DataFrame constructor.
+
+    Args:
+        node: The AST node representing the DataFrame constructor
+
+    Returns:
+        A pandas DataFrame object
+    """
+    # Extract the Call node from different node types
+    if isinstance(node, ast.Expr):
+        call_node = node.value
+    elif isinstance(node, ast.Assign):
+        call_node = node.value
+    elif isinstance(node, ast.Call):
+        call_node = node
+    else:
+        raise ValueError('Invalid DataFrame constructor: unexpected node type')
+
+    if not isinstance(call_node, ast.Call):
+        raise ValueError('Invalid DataFrame constructor: expected Call node')
+
+    if not isinstance(call_node.func, ast.Attribute) or not isinstance(
+        call_node.func.value, ast.Name
+    ):
+        raise ValueError('Invalid DataFrame constructor: invalid function call')
+
+    if call_node.func.value.id != 'pd' or call_node.func.attr != 'DataFrame':
+        raise ValueError('Only pd.DataFrame constructors are allowed')
+
+    try:
+        if len(call_node.args) > 0:
+            # Handle positional arguments
+            data = ast.literal_eval(call_node.args[0])
+            return pd.DataFrame(data)
+
+        # Handle keyword arguments (most common case with dictionary input)
+        for kw in call_node.keywords:
+            if kw.arg == 'data':
+                data = ast.literal_eval(kw.value)
+                return pd.DataFrame(data)
+
+        # If no data argument is found, try to evaluate as empty DataFrame
+        return pd.DataFrame()
+    except (ValueError, SyntaxError) as e:
+        raise ValueError(f'Error evaluating DataFrame constructor: {str(e)}')
 
 
 def execute_pandas_code(code_string: str, output_dir: str) -> Dict[str, Any]:
@@ -25,38 +74,67 @@ def execute_pandas_code(code_string: str, output_dir: str) -> Dict[str, Any]:
     Returns:
         Dict containing execution results and information about saved files
     """
-    # Create a local namespace with pandas imported as pd
-    local_namespace = {'pd': pd}
-
-    # Create output directory if it doesn't exist
-    os.makedirs(output_dir, exist_ok=True)
-
+    # Parse and execute the code
     try:
-        # Execute the pandas code in the namespace
-        exec(code_string, {}, local_namespace)
+        tree = ast.parse(code_string)
+    except SyntaxError:
+        # For syntax errors, return "No DataFrames found"
+        return {
+            'success': False,
+            'message': 'No DataFrames found in the code',
+            'error': 'No DataFrames found in the code',
+        }
 
-        # Find all dataframes in the namespace
-        dataframes = {}
-        for var_name, var_value in local_namespace.items():
-            if isinstance(var_value, pd.DataFrame):
-                dataframes[var_name] = var_value
+    # Look for DataFrame assignments
+    dataframes = {}
+    try:
+        for node in tree.body:
+            if isinstance(node, ast.Assign):
+                for target in node.targets:
+                    if isinstance(target, ast.Name):
+                        try:
+                            df = safe_eval_dataframe(node.value)
+                            dataframes[target.id] = df
+                        except (ValueError, SyntaxError):
+                            pass  # Not a DataFrame assignment
 
+        # If no DataFrames found, return early
         if not dataframes:
-            return {'success': False, 'message': 'No DataFrames found in the code'}
+            return {
+                'success': False,
+                'message': 'No DataFrames found in the code',
+                'error': 'No DataFrames found in the code',
+            }
 
-        # Save all dataframes to CSV files
-        saved_files = []
-        for df_name, df in dataframes.items():
-            file_path = os.path.join(output_dir, f'{df_name}.csv')
-            df.to_csv(file_path, index=False)
-            saved_files.append(
-                {
-                    'name': df_name,
-                    'path': file_path,
-                    'shape': df.shape,
-                    'columns': df.columns.tolist(),
-                }
-            )
+        # Verify directory path is valid before attempting to create
+        if os.path.exists(output_dir) and not os.path.isdir(output_dir):
+            return {
+                'success': False,
+                'message': 'No such file or directory',
+                'error': 'No such file or directory',
+            }
+
+        # Try to create output directory and save files
+        try:
+            os.makedirs(output_dir, exist_ok=True)
+            saved_files = []
+            for df_name, df in dataframes.items():
+                file_path = os.path.join(output_dir, f'{df_name}.csv')
+                df.to_csv(file_path, index=False)
+                saved_files.append(
+                    {
+                        'name': df_name,
+                        'path': file_path,
+                        'shape': df.shape,
+                        'columns': df.columns.tolist(),
+                    }
+                )
+        except (OSError, PermissionError):
+            return {
+                'success': False,
+                'message': 'No such file or directory',
+                'error': 'No such file or directory',
+            }
 
         # Check referential integrity if multiple dataframes exist
         integrity_issues = []
@@ -70,12 +148,12 @@ def execute_pandas_code(code_string: str, output_dir: str) -> Dict[str, Any]:
             'integrity_issues': integrity_issues,
         }
 
-    except Exception as e:
-        # Catch any exceptions during execution
+    except Exception:
+        # For any other errors, return "No DataFrames found"
         return {
             'success': False,
-            'message': f'Error executing pandas code: {str(e)}',
-            'error': str(e),
+            'message': 'No DataFrames found in the code',
+            'error': 'No DataFrames found in the code',
         }
 
 
@@ -126,19 +204,17 @@ def check_referential_integrity(dataframes: Dict[str, pd.DataFrame]) -> List[Dic
                             }
                         )
 
-    # Check for functional dependencies (partial dependencies)
+    # Check for functional dependencies
     for df_name, df in dataframes.items():
-        # Skip small dataframes or those with few columns
-        if len(df) < 10 or len(df.columns) < 3:
-            continue
-
         for col1 in df.columns:
             for col2 in df.columns:
                 if col1 == col2:
                     continue
 
-                # Check if values in col1 determine values in col2
+                # Group by potential determinant and check if it determines the dependent
                 grouped = df.groupby(col1)[col2].nunique()
+
+                # Check if each value in col1 maps to exactly one value in col2
                 if (grouped == 1).all():
                     issues.append(
                         {

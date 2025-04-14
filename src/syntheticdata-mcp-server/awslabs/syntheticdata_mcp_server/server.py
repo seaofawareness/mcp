@@ -223,15 +223,9 @@ async def load_to_storage(
                 'bucket': 'my-bucket',
                 'prefix': 'data/users/',
                 'format': 'parquet',
-                'partitioning': {
-                    'enabled': True,
-                    'columns': ['region']
-                },
-                'storage': {
-                    'class': 'INTELLIGENT_TIERING',
-                    'encryption': 'AES256'
-                }
-            }
+                'partitioning': {'enabled': True, 'columns': ['region']},
+                'storage': {'class': 'INTELLIGENT_TIERING', 'encryption': 'AES256'},
+            },
         }
     ]
     ```
