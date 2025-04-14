@@ -1,12 +1,12 @@
 """Test configuration and fixtures."""
 
 import boto3
-from moto import mock_aws
 import os
 import pytest
 import tempfile
-from typing import Dict, Generator
 from botocore.client import BaseClient
+from moto import mock_aws
+from typing import Dict, Generator
 
 
 @pytest.fixture
@@ -57,35 +57,20 @@ def sample_data() -> Dict:
                 'customer_id': 1,
                 'name': 'John Doe',
                 'email': 'john@example.com',
-                'created_at': '2024-01-01'
+                'created_at': '2024-01-01',
             },
             {
                 'customer_id': 2,
                 'name': 'Jane Smith',
                 'email': 'jane@example.com',
-                'created_at': '2024-01-02'
-            }
+                'created_at': '2024-01-02',
+            },
         ],
         'orders': [
-            {
-                'order_id': 1,
-                'customer_id': 1,
-                'amount': 100.00,
-                'status': 'completed'
-            },
-            {
-                'order_id': 2,
-                'customer_id': 2,
-                'amount': 200.00,
-                'status': 'pending'
-            },
-            {
-                'order_id': 3,
-                'customer_id': 1,
-                'amount': 150.00,
-                'status': 'processing'
-            }
-        ]
+            {'order_id': 1, 'customer_id': 1, 'amount': 100.00, 'status': 'completed'},
+            {'order_id': 2, 'customer_id': 2, 'amount': 200.00, 'status': 'pending'},
+            {'order_id': 3, 'customer_id': 1, 'amount': 150.00, 'status': 'processing'},
+        ],
     }
 
 

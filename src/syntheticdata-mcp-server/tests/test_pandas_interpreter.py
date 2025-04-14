@@ -1,9 +1,9 @@
 """Tests for pandas code interpreter functionality."""
 
+import ast
 import os
 import pandas as pd
 import pytest
-import ast
 from awslabs.syntheticdata_mcp_server.pandas_interpreter import (
     check_referential_integrity,
     execute_pandas_code,
@@ -29,17 +29,17 @@ def test_safe_eval_dataframe_invalid_constructor():
     tree = ast.parse(code)
     assign_node = tree.body[0]
     assert isinstance(assign_node, ast.Assign)
-    with pytest.raises(ValueError, match="Invalid DataFrame constructor: invalid function call"):
+    with pytest.raises(ValueError, match='Invalid DataFrame constructor: invalid function call'):
         safe_eval_dataframe(assign_node)
 
 
 def test_safe_eval_dataframe_wrong_constructor():
     """Test safe_eval_dataframe with wrong constructor."""
-    code = "df = pd.Series([1, 2, 3])"
+    code = 'df = pd.Series([1, 2, 3])'
     tree = ast.parse(code)
     assign_node = tree.body[0]
     assert isinstance(assign_node, ast.Assign)
-    with pytest.raises(ValueError, match="Only pd.DataFrame constructors are allowed"):
+    with pytest.raises(ValueError, match='Only pd.DataFrame constructors are allowed'):
         safe_eval_dataframe(assign_node)
 
 
@@ -104,7 +104,7 @@ def test_execute_pandas_code_invalid_directory(temp_dir: str) -> None:
     dummy_file = os.path.join(temp_dir, 'dummy.txt')
     with open(dummy_file, 'w') as f:
         f.write('dummy')
-    
+
     # Try to use the file as a directory - this will always fail
     invalid_dir = os.path.join(dummy_file, 'subdir')
     code = """df = pd.DataFrame({'a': [1, 2, 3]})"""
@@ -118,58 +118,65 @@ def test_execute_pandas_code_invalid_directory(temp_dir: str) -> None:
 def test_check_referential_integrity() -> None:
     """Test referential integrity checking."""
     # Create test data with known integrity issues
-    customers_df = pd.DataFrame({
-        'customer_id': [1, 2, 3],
-        'name': ['Alice', 'Bob', 'Charlie']
-    })
-    
-    orders_df = pd.DataFrame({
-        'order_id': [1, 2, 3, 4],
-        'customer_id': [1, 4, 5, 6],  # 4, 5, and 6 don't exist in customers
-        'amount': [100, 200, 300, 400]
-    })
-    
-    addresses_df = pd.DataFrame({
-        'city': ['New York', 'New York', 'Chicago', 'Chicago', 'Chicago'],
-        'zip_code': ['10001', '10001', '60601', '60601', '60601']  # Strong functional dependency
-    })
+    customers_df = pd.DataFrame({'customer_id': [1, 2, 3], 'name': ['Alice', 'Bob', 'Charlie']})
 
-    dataframes = {
-        'customers': customers_df,
-        'orders': orders_df,
-        'addresses': addresses_df
-    }
+    orders_df = pd.DataFrame(
+        {
+            'order_id': [1, 2, 3, 4],
+            'customer_id': [1, 4, 5, 6],  # 4, 5, and 6 don't exist in customers
+            'amount': [100, 200, 300, 400],
+        }
+    )
+
+    addresses_df = pd.DataFrame(
+        {
+            'city': ['New York', 'New York', 'Chicago', 'Chicago', 'Chicago'],
+            'zip_code': [
+                '10001',
+                '10001',
+                '60601',
+                '60601',
+                '60601',
+            ],  # Strong functional dependency
+        }
+    )
+
+    dataframes = {'customers': customers_df, 'orders': orders_df, 'addresses': addresses_df}
 
     issues = check_referential_integrity(dataframes)
-    
+
     # Check referential integrity issues
     ref_issues = [i for i in issues if i['type'] == 'referential_integrity']
-    assert len(ref_issues) > 0, "No referential integrity issues found"
-    
+    assert len(ref_issues) > 0, 'No referential integrity issues found'
+
     # Find the specific referential integrity issue
     found_ref_issue = False
     for issue in ref_issues:
-        if (issue['source_table'] == 'orders' and 
-            issue['target_table'] == 'customers' and
-            issue['column'] == 'customer_id' and
-            set(issue['missing_values']).issuperset({4, 5, 6})):  # More missing values
+        if (
+            issue['source_table'] == 'orders'
+            and issue['target_table'] == 'customers'
+            and issue['column'] == 'customer_id'
+            and set(issue['missing_values']).issuperset({4, 5, 6})
+        ):  # More missing values
             found_ref_issue = True
             break
-    assert found_ref_issue, "Expected referential integrity issue not found"
+    assert found_ref_issue, 'Expected referential integrity issue not found'
 
     # Check functional dependency issues
     func_issues = [i for i in issues if i['type'] == 'functional_dependency']
-    assert len(func_issues) > 0, "No functional dependency issues found"
-    
+    assert len(func_issues) > 0, 'No functional dependency issues found'
+
     # Find the specific functional dependency issue
     found_func_issue = False
     for issue in func_issues:
-        if (issue['table'] == 'addresses' and
-            issue['determinant'] == 'city' and
-            issue['dependent'] == 'zip_code'):
+        if (
+            issue['table'] == 'addresses'
+            and issue['determinant'] == 'city'
+            and issue['dependent'] == 'zip_code'
+        ):
             found_func_issue = True
             break
-    assert found_func_issue, "Expected functional dependency issue not found"
+    assert found_func_issue, 'Expected functional dependency issue not found'
 
 
 def test_execute_pandas_code_directory_creation(temp_dir: str, sample_pandas_code: str) -> None:
@@ -182,11 +189,14 @@ def test_execute_pandas_code_directory_creation(temp_dir: str, sample_pandas_cod
     assert len(os.listdir(output_dir)) == 3
 
 
-@pytest.mark.parametrize('code,expected_error', [
-    ('import os; os.system("echo hack")', 'NameError'),  # Security: No access to os
-    ('import sys; sys.exit(1)', 'NameError'),  # Security: No access to sys
-    ('__import__("os")', 'NameError'),  # Security: No dynamic imports
-])
+@pytest.mark.parametrize(
+    'code,expected_error',
+    [
+        ('import os; os.system("echo hack")', 'NameError'),  # Security: No access to os
+        ('import sys; sys.exit(1)', 'NameError'),  # Security: No access to sys
+        ('__import__("os")', 'NameError'),  # Security: No dynamic imports
+    ],
+)
 def test_execute_pandas_code_security(temp_dir: str, code: str, expected_error: str) -> None:
     """Test that code execution is properly sandboxed."""
     result = execute_pandas_code(code, temp_dir)

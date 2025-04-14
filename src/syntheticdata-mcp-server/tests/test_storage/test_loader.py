@@ -10,20 +10,21 @@ def data_loader() -> UnifiedDataLoader:
     return UnifiedDataLoader()
 
 
-async def test_load_data_s3_success(data_loader: UnifiedDataLoader, mock_s3, sample_data: dict) -> None:
+async def test_load_data_s3_success(
+    data_loader: UnifiedDataLoader, mock_s3, sample_data: dict
+) -> None:
     """Test successful data loading to S3."""
-    targets = [{
-        'type': 's3',
-        'config': {
-            'bucket': 'test-bucket',
-            'prefix': 'data/',
-            'format': 'csv',
-            'storage': {
-                'class': 'STANDARD',
-                'encryption': 'AES256'
-            }
+    targets = [
+        {
+            'type': 's3',
+            'config': {
+                'bucket': 'test-bucket',
+                'prefix': 'data/',
+                'format': 'csv',
+                'storage': {'class': 'STANDARD', 'encryption': 'AES256'},
+            },
         }
-    }]
+    ]
 
     result = await data_loader.load_data(sample_data, targets)
 
@@ -33,28 +34,18 @@ async def test_load_data_s3_success(data_loader: UnifiedDataLoader, mock_s3, sam
 
 
 async def test_load_data_multiple_targets(
-    data_loader: UnifiedDataLoader,
-    mock_s3,
-    sample_data: dict
+    data_loader: UnifiedDataLoader, mock_s3, sample_data: dict
 ) -> None:
     """Test loading data to multiple targets."""
     targets = [
         {
             'type': 's3',
-            'config': {
-                'bucket': 'test-bucket',
-                'prefix': 'csv-data/',
-                'format': 'csv'
-            }
+            'config': {'bucket': 'test-bucket', 'prefix': 'csv-data/', 'format': 'csv'},
         },
         {
             'type': 's3',
-            'config': {
-                'bucket': 'test-bucket',
-                'prefix': 'json-data/',
-                'format': 'json'
-            }
-        }
+            'config': {'bucket': 'test-bucket', 'prefix': 'json-data/', 'format': 'json'},
+        },
     ]
 
     result = await data_loader.load_data(sample_data, targets)
@@ -64,12 +55,11 @@ async def test_load_data_multiple_targets(
     assert all(r['success'] for r in result['results'].values())
 
 
-async def test_load_data_unsupported_target(data_loader: UnifiedDataLoader, sample_data: dict) -> None:
+async def test_load_data_unsupported_target(
+    data_loader: UnifiedDataLoader, sample_data: dict
+) -> None:
     """Test handling of unsupported target types."""
-    targets = [{
-        'type': 'unsupported',
-        'config': {}
-    }]
+    targets = [{'type': 'unsupported', 'config': {}}]
 
     result = await data_loader.load_data(sample_data, targets)
 
@@ -79,15 +69,19 @@ async def test_load_data_unsupported_target(data_loader: UnifiedDataLoader, samp
     assert 'Unsupported target type' in result['results']['unsupported']['error']
 
 
-async def test_load_data_invalid_config(data_loader: UnifiedDataLoader, mock_s3, sample_data: dict) -> None:
+async def test_load_data_invalid_config(
+    data_loader: UnifiedDataLoader, mock_s3, sample_data: dict
+) -> None:
     """Test handling of invalid target configuration."""
-    targets = [{
-        'type': 's3',
-        'config': {
-            'bucket': 'test-bucket'
-            # Missing required fields
+    targets = [
+        {
+            'type': 's3',
+            'config': {
+                'bucket': 'test-bucket'
+                # Missing required fields
+            },
         }
-    }]
+    ]
 
     result = await data_loader.load_data(sample_data, targets)
 
@@ -96,21 +90,13 @@ async def test_load_data_invalid_config(data_loader: UnifiedDataLoader, mock_s3,
     assert not result['results']['s3']['success']
 
 
-async def test_load_data_mixed_success(data_loader: UnifiedDataLoader, mock_s3, sample_data: dict) -> None:
+async def test_load_data_mixed_success(
+    data_loader: UnifiedDataLoader, mock_s3, sample_data: dict
+) -> None:
     """Test handling of mixed success/failure across targets."""
     targets = [
-        {
-            'type': 's3',
-            'config': {
-                'bucket': 'test-bucket',
-                'prefix': 'data/',
-                'format': 'csv'
-            }
-        },
-        {
-            'type': 'unsupported',
-            'config': {}
-        }
+        {'type': 's3', 'config': {'bucket': 'test-bucket', 'prefix': 'data/', 'format': 'csv'}},
+        {'type': 'unsupported', 'config': {}},
     ]
 
     result = await data_loader.load_data(sample_data, targets)
@@ -130,14 +116,9 @@ async def test_load_data_empty_targets(data_loader: UnifiedDataLoader, sample_da
 
 async def test_load_data_empty_data(data_loader: UnifiedDataLoader, mock_s3) -> None:
     """Test handling of empty data."""
-    targets = [{
-        'type': 's3',
-        'config': {
-            'bucket': 'test-bucket',
-            'prefix': 'data/',
-            'format': 'csv'
-        }
-    }]
+    targets = [
+        {'type': 's3', 'config': {'bucket': 'test-bucket', 'prefix': 'data/', 'format': 'csv'}}
+    ]
 
     result = await data_loader.load_data({}, targets)
 
@@ -146,15 +127,16 @@ async def test_load_data_empty_data(data_loader: UnifiedDataLoader, mock_s3) -> 
     assert not result['results']['s3']['success']
 
 
-@pytest.mark.parametrize('target_config', [
-    {'type': 's3'},  # Missing config
-    {'config': {'bucket': 'test'}},  # Missing type
-    {},  # Empty config
-])
+@pytest.mark.parametrize(
+    'target_config',
+    [
+        {'type': 's3'},  # Missing config
+        {'config': {'bucket': 'test'}},  # Missing type
+        {},  # Empty config
+    ],
+)
 async def test_load_data_invalid_target_config(
-    data_loader: UnifiedDataLoader,
-    sample_data: dict,
-    target_config: dict
+    data_loader: UnifiedDataLoader, sample_data: dict, target_config: dict
 ) -> None:
     """Test handling of invalid target configurations."""
     targets = [target_config]

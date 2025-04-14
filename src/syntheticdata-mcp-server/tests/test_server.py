@@ -72,7 +72,7 @@ async def test_validate_and_save_data_invalid(temp_dir: str) -> None:
     invalid_data = {
         'customers': [
             {'id': 1, 'name': 'John'},
-            {'id': 1, 'email': 'john@example.com'}  # Different keys
+            {'id': 1, 'email': 'john@example.com'},  # Different keys
         ]
     }
 
@@ -87,7 +87,7 @@ async def test_validate_and_save_data_duplicate_ids(temp_dir: str) -> None:
     data_with_duplicates = {
         'customers': [
             {'id': 1, 'name': 'John', 'email': 'john@example.com'},
-            {'id': 1, 'name': 'Jane', 'email': 'jane@example.com'}  # Duplicate ID
+            {'id': 1, 'name': 'Jane', 'email': 'jane@example.com'},  # Duplicate ID
         ]
     }
 
@@ -99,18 +99,17 @@ async def test_validate_and_save_data_duplicate_ids(temp_dir: str) -> None:
 
 async def test_load_to_storage_s3(mock_s3, sample_data: dict) -> None:
     """Test loading data to S3."""
-    targets = [{
-        'type': 's3',
-        'config': {
-            'bucket': 'test-bucket',
-            'prefix': 'data/',
-            'format': 'csv',
-            'storage': {
-                'class': 'STANDARD',
-                'encryption': 'AES256'
-            }
+    targets = [
+        {
+            'type': 's3',
+            'config': {
+                'bucket': 'test-bucket',
+                'prefix': 'data/',
+                'format': 'csv',
+                'storage': {'class': 'STANDARD', 'encryption': 'AES256'},
+            },
         }
-    }]
+    ]
 
     result = await load_to_storage(sample_data, targets)
 
@@ -127,13 +126,15 @@ async def test_load_to_storage_s3(mock_s3, sample_data: dict) -> None:
 
 async def test_load_to_storage_invalid_config() -> None:
     """Test loading data with invalid storage configuration."""
-    targets = [{
-        'type': 's3',
-        'config': {
-            'bucket': 'test-bucket'
-            # Missing required fields: prefix, format
+    targets = [
+        {
+            'type': 's3',
+            'config': {
+                'bucket': 'test-bucket'
+                # Missing required fields: prefix, format
+            },
         }
-    }]
+    ]
 
     result = await load_to_storage({'test': []}, targets)
     assert result['success'] is False
@@ -166,28 +167,19 @@ async def test_execute_pandas_code_with_output_dir(temp_dir: str, sample_pandas_
 def test_validate_table_data() -> None:
     """Test table data validation function."""
     # Valid data
-    valid_data = [
-        {'id': 1, 'name': 'John'},
-        {'id': 2, 'name': 'Jane'}
-    ]
+    valid_data = [{'id': 1, 'name': 'John'}, {'id': 2, 'name': 'Jane'}]
     result = _validate_table_data('test_table', valid_data)
     assert result['is_valid']
     assert not result['errors']
 
     # Invalid: mixed keys
-    invalid_data = [
-        {'id': 1, 'name': 'John'},
-        {'id': 2, 'email': 'jane@example.com'}
-    ]
+    invalid_data = [{'id': 1, 'name': 'John'}, {'id': 2, 'email': 'jane@example.com'}]
     result = _validate_table_data('test_table', invalid_data)
     assert not result['is_valid']
     assert len(result['errors']) == 1
 
     # Invalid: duplicate IDs
-    duplicate_ids = [
-        {'id': 1, 'name': 'John'},
-        {'id': 1, 'name': 'Jane'}
-    ]
+    duplicate_ids = [{'id': 1, 'name': 'John'}, {'id': 1, 'name': 'Jane'}]
     result = _validate_table_data('test_table', duplicate_ids)
     assert not result['is_valid']
     assert 'Duplicate IDs' in result['errors'][0]

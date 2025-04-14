@@ -17,35 +17,32 @@ async def test_validate_config_success(s3_target: S3Target, sample_data: dict) -
         'bucket': 'test-bucket',
         'prefix': 'data/',
         'format': 'csv',
-        'storage': {
-            'class': 'STANDARD',
-            'encryption': 'AES256'
-        }
+        'storage': {'class': 'STANDARD', 'encryption': 'AES256'},
     }
 
     is_valid = await s3_target.validate(sample_data, config)
     assert is_valid is True
 
 
-@pytest.mark.parametrize('config,expected', [
-    (
-        {'bucket': 'test-bucket', 'prefix': 'data/'},  # Missing format
-        False
-    ),
-    (
-        {'bucket': 'test-bucket', 'prefix': 'data/', 'format': 'invalid'},  # Invalid format
-        False
-    ),
-    (
-        {'prefix': 'data/', 'format': 'csv'},  # Missing bucket
-        False
-    )
-])
+@pytest.mark.parametrize(
+    'config,expected',
+    [
+        (
+            {'bucket': 'test-bucket', 'prefix': 'data/'},  # Missing format
+            False,
+        ),
+        (
+            {'bucket': 'test-bucket', 'prefix': 'data/', 'format': 'invalid'},  # Invalid format
+            False,
+        ),
+        (
+            {'prefix': 'data/', 'format': 'csv'},  # Missing bucket
+            False,
+        ),
+    ],
+)
 async def test_validate_config_invalid(
-    s3_target: S3Target,
-    sample_data: dict,
-    config: dict,
-    expected: bool
+    s3_target: S3Target, sample_data: dict, config: dict, expected: bool
 ) -> None:
     """Test validation with invalid configurations."""
     is_valid = await s3_target.validate(sample_data, config)
@@ -58,10 +55,7 @@ async def test_load_success(s3_target: S3Target, sample_data: dict) -> None:
         'bucket': 'test-bucket',
         'prefix': 'data/',
         'format': 'csv',
-        'storage': {
-            'class': 'STANDARD',
-            'encryption': 'AES256'
-        }
+        'storage': {'class': 'STANDARD', 'encryption': 'AES256'},
     }
 
     result = await s3_target.load(sample_data, config)
@@ -77,7 +71,7 @@ async def test_load_with_partitioning(s3_target: S3Target) -> None:
         'orders': [
             {'order_id': 1, 'status': 'pending', 'amount': 100},
             {'order_id': 2, 'status': 'completed', 'amount': 200},
-            {'order_id': 3, 'status': 'pending', 'amount': 300}
+            {'order_id': 3, 'status': 'pending', 'amount': 300},
         ]
     }
 
@@ -85,14 +79,8 @@ async def test_load_with_partitioning(s3_target: S3Target) -> None:
         'bucket': 'test-bucket',
         'prefix': 'data/',
         'format': 'csv',
-        'partitioning': {
-            'enabled': True,
-            'columns': ['status']
-        },
-        'storage': {
-            'class': 'STANDARD',
-            'encryption': 'AES256'
-        }
+        'partitioning': {'enabled': True, 'columns': ['status']},
+        'storage': {'class': 'STANDARD', 'encryption': 'AES256'},
     }
 
     result = await s3_target.load(data, config)
@@ -105,17 +93,12 @@ async def test_load_with_partitioning(s3_target: S3Target) -> None:
     assert any('status=completed' in f['key'] for f in uploaded_files)
 
 
-@pytest.mark.parametrize('format,compression', [
-    ('csv', None),
-    ('json', None),
-    ('parquet', 'snappy')
-])
+@pytest.mark.parametrize(
+    'format,compression', [('csv', None), ('json', None), ('parquet', 'snappy')]
+)
 async def test_convert_format(s3_target: S3Target, format: str, compression: str) -> None:
     """Test DataFrame conversion to different formats."""
-    df = pd.DataFrame({
-        'id': [1, 2],
-        'name': ['test1', 'test2']
-    })
+    df = pd.DataFrame({'id': [1, 2], 'name': ['test1', 'test2']})
 
     content = s3_target._convert_format(df, format, compression)
     assert isinstance(content, bytes)
@@ -133,17 +116,16 @@ async def test_convert_format_invalid(s3_target: S3Target) -> None:
 async def test_apply_partitioning(s3_target: S3Target) -> None:
     """Test DataFrame partitioning."""
     dataframes = {
-        'orders': pd.DataFrame({
-            'order_id': [1, 2, 3, 4],
-            'status': ['pending', 'completed', 'pending', 'shipped'],
-            'amount': [100, 200, 300, 400]
-        })
+        'orders': pd.DataFrame(
+            {
+                'order_id': [1, 2, 3, 4],
+                'status': ['pending', 'completed', 'pending', 'shipped'],
+                'amount': [100, 200, 300, 400],
+            }
+        )
     }
 
-    partition_config = {
-        'columns': ['status'],
-        'drop_columns': True
-    }
+    partition_config = {'columns': ['status'], 'drop_columns': True}
 
     result = s3_target._apply_partitioning(dataframes, partition_config)
 
@@ -164,19 +146,10 @@ async def test_upload_to_s3(s3_target: S3Target) -> None:
     content = b'test content'
     bucket = 'test-bucket'
     key = 'test/file.txt'
-    storage_config = {
-        'class': 'STANDARD',
-        'encryption': 'AES256'
-    }
+    storage_config = {'class': 'STANDARD', 'encryption': 'AES256'}
     metadata = {'test': 'value'}
 
-    result = await s3_target._upload_to_s3(
-        content,
-        bucket,
-        key,
-        storage_config,
-        metadata
-    )
+    result = await s3_target._upload_to_s3(content, bucket, key, storage_config, metadata)
 
     assert result['bucket'] == bucket
     assert result['key'] == key
@@ -192,5 +165,5 @@ async def test_upload_to_s3_error(s3_target: S3Target) -> None:
             'nonexistent-bucket',  # This should cause an error
             'key',
             {},
-            {}
+            {},
         )
