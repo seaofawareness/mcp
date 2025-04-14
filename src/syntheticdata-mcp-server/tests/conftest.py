@@ -23,14 +23,10 @@ def temp_dir() -> Generator[str, None, None]:
 @pytest.fixture
 def mock_aws_credentials() -> None:
     """Mock AWS credentials for moto."""
-    # pragma: allowlist secret
-    os.environ['AWS_ACCESS_KEY_ID'] = 'testing'
-    # pragma: allowlist secret
-    os.environ['AWS_SECRET_ACCESS_KEY'] = 'testing'
-    # pragma: allowlist secret
-    os.environ['AWS_SECURITY_TOKEN'] = 'testing'
-    # pragma: allowlist secret
-    os.environ['AWS_SESSION_TOKEN'] = 'testing'
+    os.environ['AWS_ACCESS_KEY_ID'] = 'TESTING123'
+    os.environ['AWS_SECRET_ACCESS_KEY'] = 'TESTING123'
+    os.environ['AWS_SECURITY_TOKEN'] = 'TESTING123'
+    os.environ['AWS_SESSION_TOKEN'] = 'TESTING123'
     os.environ['AWS_DEFAULT_REGION'] = 'us-east-1'
 
 
