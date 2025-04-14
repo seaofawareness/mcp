@@ -7,6 +7,7 @@ import tempfile
 from botocore.client import BaseClient
 from moto import mock_aws
 from typing import Dict, Generator
+from .test_constants import TEST_AWS_CREDENTIALS, TEST_AWS_CONFIG
 
 
 @pytest.fixture
@@ -22,12 +23,8 @@ def temp_dir() -> Generator[str, None, None]:
 
 @pytest.fixture
 def mock_aws_credentials() -> None:
-    """Mock AWS credentials for moto."""
-    os.environ['AWS_ACCESS_KEY_ID'] = 'TESTING123'
-    os.environ['AWS_SECRET_ACCESS_KEY'] = 'TESTING123'
-    os.environ['AWS_SECURITY_TOKEN'] = 'TESTING123'
-    os.environ['AWS_SESSION_TOKEN'] = 'TESTING123'
-    os.environ['AWS_DEFAULT_REGION'] = 'us-east-1'
+    """Mock AWS credentials for moto using test constants."""
+    os.environ.update(TEST_AWS_CREDENTIALS)
 
 
 @pytest.fixture
@@ -38,9 +35,9 @@ def mock_s3(mock_aws_credentials) -> Generator[BaseClient, None, None]:
         Mocked S3 client
     """
     with mock_aws():
-        s3_client = boto3.client('s3', region_name='us-east-1')
+        s3_client = boto3.client('s3', region_name=TEST_AWS_CONFIG['region'])
         # Create test bucket
-        s3_client.create_bucket(Bucket='test-bucket')
+        s3_client.create_bucket(Bucket=TEST_AWS_CONFIG['test_bucket'])
         yield s3_client
 
 
