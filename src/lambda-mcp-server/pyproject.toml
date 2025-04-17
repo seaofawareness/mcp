@@ -1,6 +1,6 @@
 [project]
 name = "awslabs.lambda-mcp-server"
-version = "0.1.9223372036854775807"
+version = "0.1.0"
 description = "An AWS Labs Model Context Protocol (MCP) server for AWS Lambda"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -43,6 +43,8 @@ dev = [
     "pre-commit>=4.1.0",
     "ruff>=0.9.7",
     "pyright>=1.1.398",
+    "pytest>=8.0.0",
+    "pytest-cov>=4.1.0",
 ]
 
 [build-system]
@@ -102,3 +104,6 @@ update_changelog_on_bump = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["awslabs"]
+
+[tool.coverage.run]
+source = ["awslabs"]

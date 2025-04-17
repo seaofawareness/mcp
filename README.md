@@ -99,6 +99,8 @@ A server for seamlessly creating diagrams using the Python diagrams package DSL.
 
 ### AWS Lambda MCP Server
 
+[![PyPI version](https://img.shields.io/pypi/v/awslabs.lambda-mcp-server.svg)](https://pypi.org/project/awslabs.lambda-mcp-server/)
+
 An server to select and run AWS Lambda function as MCP tools without code changes.
 
 - This server acts as a bridge between MCP clients and AWS Lambda functions, allowing foundation models (FMs) to access and run Lambda functions as tools.
@@ -107,6 +109,20 @@ An server to select and run AWS Lambda function as MCP tools without code change
 - The Lambda function description is used by MCP to describe the tool and should guide the FMs on when (what does the function provide?) and how (which parameters it needs? which syntax?) to use it.
 
 [Learn more](src/lambda-mcp-server/README.md) | [Documentation](https://awslabs.github.io/mcp/servers/lambda-mcp-server/)
+
+### AWS Terraform MCP Server
+
+[![PyPI version](https://img.shields.io/pypi/v/awslabs.terraform-mcp-server.svg)](https://pypi.org/project/awslabs.terraform-mcp-server/)
+
+A server for AWS Terraform best practices.
+
+- Security-First Development Workflow
+- Checkov Integration
+- AWS and AWSCC Provider Documentation
+- AWS-IA GenAI Modules
+- Terraform Workflow Execution
+
+[Learn more](src/terraform-mcp-server/README.md) | [Documentation](https://awslabs.github.io/mcp/servers/terraform-mcp-server/)
 
 ## What is the Model Context Protocol (MCP) and how does it work with AWS MCP Servers?
 
@@ -146,9 +162,7 @@ Example configuration for Amazon Q CLI MCP (`~/.aws/amazonq/mcp.json`):
     },
     "awslabs.nova-canvas-mcp-server": {
       "command": "uvx",
-      "args": [
-        "awslabs.nova-canvas-mcp-server@latest"
-      ],
+      "args": ["awslabs.nova-canvas-mcp-server@latest"],
       "env": {
         "AWS_PROFILE": "your-aws-profile",
         "AWS_REGION": "us-east-1",
@@ -221,7 +235,7 @@ Documentation for each server:
 - [AWS CDK MCP Server](https://awslabs.github.io/mcp/servers/cdk-mcp-server/)
 - [Cost Analysis MCP Server](https://awslabs.github.io/mcp/servers/cost-analysis-mcp-server/)
 - [Amazon Nova Canvas MCP Server](https://awslabs.github.io/mcp/servers/nova-canvas-mcp-server/)
-- [AWS Diagram MCP Server]((https://awslabs.github.io/mcp/servers/aws-diagram-mcp-server/))
+- [AWS Diagram MCP Server](https://awslabs.github.io/mcp/servers/aws-diagram-mcp-server/)
 
 Documentation includes:
 

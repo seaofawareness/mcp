@@ -1,6 +1,6 @@
 [project]
 name = "awslabs.nova-canvas-mcp-server"
-version = "0.2.9223372036854775807"
+version = "0.2.0"
 description = "An AWS Labs Model Context Protocol (MCP) server for Amazon Nova Canvas"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -44,6 +44,8 @@ dev = [
     "commitizen>=4.4.1",
     "pre-commit>=4.2.0",
     "pyright>=1.1.398",
+    "pytest>=8.0.0",
+    "pytest-cov>=4.1.0",
     "ruff>=0.11.2",
 ]
 
@@ -107,3 +109,6 @@ packages = ["awslabs"]
 
 [tool.bandit]
 exclude_dirs = ["venv","tests"]
+
+[tool.coverage.run]
+source = ["awslabs"]
