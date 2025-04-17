@@ -98,13 +98,14 @@ docstring-code-format = true
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "0.0.0"
-tag_format = "v$version"
+version = "0.2.1"
+tag_format = "$version"
 version_files = [
     "pyproject.toml:version",
     "awslabs/core_mcp_server/__init__.py:__version__"
 ]
 update_changelog_on_bump = true
+changelog_start_rev = "main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["awslabs"]
