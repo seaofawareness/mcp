@@ -111,7 +111,7 @@ changelog_start_rev = "main"
 packages = ["awslabs"]
 
 [tool.bandit]
-exclude_dirs = ["venv","tests"]
+exclude_dirs = [".venv", "venv", "tests"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
