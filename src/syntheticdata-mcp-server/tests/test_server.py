@@ -1,12 +1,19 @@
 """Tests for syntheticdata MCP server functionality."""
 
 import os
+import pytest
 from awslabs.syntheticdata_mcp_server.server import (
     _extract_key_entities,
+    _generate_data_generation_instructions,
+    _generate_data_structure_instructions,
+    _get_entity_example_data,
+    _get_recommended_record_counts,
     _validate_table_data,
     execute_pandas_code,
     get_data_generation_instructions,
     load_to_storage,
+    main,
+    mcp,
     validate_and_save_data,
 )
 
@@ -188,3 +195,143 @@ def test_validate_table_data() -> None:
     result = _validate_table_data('test_table', [])
     assert not result['is_valid']
     assert 'cannot be empty' in result['errors'][0]
+
+
+def test_generate_data_structure_instructions() -> None:
+    """Test generation of data structure instructions."""
+    description = 'An e-commerce platform with users, products, and orders.'
+    entities = ['user', 'product', 'order']
+
+    result = _generate_data_structure_instructions(description, entities)
+
+    # Check structure
+    assert 'general_instructions' in result
+    assert 'entity_instructions' in result
+    assert 'relationship_instructions' in result
+
+    # Check entity instructions
+    assert all(entity in result['entity_instructions'] for entity in entities)
+
+    # Check user entity suggestions
+    user_suggestions = result['entity_instructions']['user']['suggestions']
+    assert 'email' in user_suggestions
+    assert 'password_hash' in user_suggestions
+
+    # Check product entity suggestions
+    product_suggestions = result['entity_instructions']['product']['suggestions']
+    assert 'price' in product_suggestions
+    assert 'category_id' in product_suggestions
+
+    # Check relationship instructions
+    rel_instructions = result['relationship_instructions']
+    assert any('foreign keys' in instr.lower() for instr in rel_instructions)
+    assert any('relationships' in instr.lower() for instr in rel_instructions)
+
+
+def test_generate_data_generation_instructions() -> None:
+    """Test generation of data generation instructions."""
+    entities = ['user', 'product', 'order']
+
+    result = _generate_data_generation_instructions(entities)
+
+    # Check structure
+    assert 'general_instructions' in result
+    assert 'data_quality_instructions' in result
+    assert 'recommended_record_counts' in result
+
+    # Check instructions content
+    gen_instructions = result['general_instructions']
+    assert any('realistic' in instr.lower() for instr in gen_instructions)
+    assert any('consistency' in instr.lower() for instr in gen_instructions)
+
+    # Check quality instructions
+    quality_instructions = result['data_quality_instructions']
+    assert any('data types' in instr.lower() for instr in quality_instructions)
+    assert any('null values' in instr.lower() for instr in quality_instructions)
+
+    # Check record counts
+    record_counts = result['recommended_record_counts']
+    assert all(entity in record_counts for entity in entities)
+    assert record_counts['user'] > 0
+    assert record_counts['product'] > 0
+    assert record_counts['order'] > 0
+
+
+def test_get_recommended_record_counts() -> None:
+    """Test record count recommendations."""
+    # Test common entities
+    common_entities = ['user', 'product', 'order']
+    result = _get_recommended_record_counts(common_entities)
+    assert result['user'] == 50  # Default for user-type entities
+    assert result['product'] == 20  # Default for product-type entities
+    assert result['order'] == 100  # Default for transaction-type entities
+
+    # Test custom entities
+    custom_entities = ['custom_entity']
+    result = _get_recommended_record_counts(custom_entities)
+    assert result['custom_entity'] == 30  # Default for unknown entities
+
+    # Test empty input
+    result = _get_recommended_record_counts([])
+    assert isinstance(result, dict)
+    assert len(result) == 0
+
+
+def test_get_entity_example_data() -> None:
+    """Test example data generation for entities."""
+    # Test predefined entities
+    user_data = _get_entity_example_data('user')
+    assert len(user_data) == 2
+    assert all(isinstance(record, dict) for record in user_data)
+    assert all('email' in record for record in user_data)
+    assert all('created_at' in record for record in user_data)
+
+    product_data = _get_entity_example_data('product')
+    assert len(product_data) == 2
+    assert all('price' in record for record in product_data)
+    assert all('stock_quantity' in record for record in product_data)
+
+    order_data = _get_entity_example_data('order')
+    assert len(order_data) == 2
+    assert all('customer_id' in record for record in order_data)
+    assert all('total_amount' in record for record in order_data)
+
+    # Test custom entity
+    custom_data = _get_entity_example_data('custom_entity')
+    assert len(custom_data) == 2
+    assert all('id' in record for record in custom_data)
+    assert all('name' in record for record in custom_data)
+    assert all('description' in record for record in custom_data)
+
+
+@pytest.mark.parametrize(
+    'args,expected_port,expected_sse',
+    [
+        ([], 8888, False),  # Default values
+        (['--port', '9999'], 9999, False),  # Custom port
+        (['--sse'], 8888, True),  # SSE enabled
+        (['--sse', '--port', '7777'], 7777, True),  # Both custom
+    ],
+)
+def test_main_cli_arguments(mock_cli_args, monkeypatch, args, expected_port, expected_sse) -> None:
+    """Test CLI argument handling."""
+    # Update mock CLI args
+    mock_cli_args.extend(args)
+
+    # Mock FastMCP.run to capture arguments
+    run_args = {}
+
+    def mock_run(self, **kwargs):
+        run_args.update(kwargs)
+
+    monkeypatch.setattr('mcp.server.fastmcp.FastMCP.run', mock_run)
+
+    # Run main
+    main()
+
+    # Verify settings
+    if expected_sse:
+        assert run_args.get('transport') == 'sse'
+        assert mcp.settings.port == expected_port
+    else:
+        assert not run_args  # Default stdio transport

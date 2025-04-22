@@ -3,11 +3,12 @@
 import boto3
 import os
 import pytest
+import sys
 import tempfile
 from .test_constants import TEST_AWS_CONFIG, TEST_AWS_CREDENTIALS
 from botocore.client import BaseClient
 from moto import mock_aws
-from typing import Dict, Generator
+from typing import Dict, Generator, List
 
 
 @pytest.fixture
@@ -19,6 +20,22 @@ def temp_dir() -> Generator[str, None, None]:
     """
     with tempfile.TemporaryDirectory() as tmp_dir:
         yield tmp_dir
+
+
+@pytest.fixture
+def mock_cli_args() -> Generator[List[str], None, None]:
+    """Mock command line arguments.
+
+    This fixture saves the original sys.argv and restores it after the test,
+    allowing tests to modify sys.argv without affecting other tests.
+
+    Yields:
+        List of command line arguments
+    """
+    original_argv = sys.argv
+    sys.argv = ['server.py']  # Default state
+    yield sys.argv
+    sys.argv = original_argv
 
 
 @pytest.fixture
