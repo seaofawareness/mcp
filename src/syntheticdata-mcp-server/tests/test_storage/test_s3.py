@@ -5,6 +5,8 @@ import pytest
 from awslabs.syntheticdata_mcp_server.storage.s3 import S3Target
 from concurrent.futures import ThreadPoolExecutor
 from pytest import mark
+from typing import Any, Dict, List, cast
+from unittest.mock import MagicMock
 
 
 @pytest.fixture
@@ -52,8 +54,8 @@ async def test_validate_with_empty_data(s3_target: S3Target) -> None:
     is_valid = await s3_target.validate({}, config)
     assert is_valid is False
 
-    # Test with None
-    is_valid = await s3_target.validate(None, config)
+    # Test with None - use cast to satisfy type checker
+    is_valid = await s3_target.validate(cast(Dict[str, List[Dict[str, Any]]], None), config)
     assert is_valid is False
 
 
@@ -83,7 +85,8 @@ async def test_validate_s3_access_error(s3_target: S3Target, sample_data: dict) 
         raise Exception('Access denied')
 
     # Replace head_bucket with mock
-    s3_target.s3_client.head_bucket = mock_head_bucket
+    s3_target.s3_client = MagicMock()  # type: ignore
+    s3_target.s3_client.head_bucket = mock_head_bucket  # type: ignore
 
     config = {
         'bucket': 'test-bucket',
@@ -202,7 +205,7 @@ async def test_convert_format(s3_target: S3Target, format: str, compression: str
 async def test_convert_format_empty_dataframe(s3_target: S3Target) -> None:
     """Test converting empty DataFrame."""
     # Create empty DataFrame with defined schema
-    df = pd.DataFrame(columns=['id', 'value'])
+    df = pd.DataFrame(data={}, columns=pd.Index(['id', 'value']))
 
     # Test CSV format
     content = s3_target._convert_format(df, 'csv')
