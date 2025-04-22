@@ -40,7 +40,22 @@ class UnifiedDataLoader:
         results = {}
 
         for target_config in targets:
-            target_type = target_config['type']
+            # Validate target config structure
+            if not isinstance(target_config, dict):
+                results['unknown'] = {
+                    'success': False,
+                    'error': 'Invalid target configuration format'
+                }
+                continue
+
+            target_type = target_config.get('type')
+            if not target_type:
+                results['unknown'] = {
+                    'success': False,
+                    'error': 'Missing target type'
+                }
+                continue
+
             if target_type not in self.targets:
                 results[target_type] = {
                     'success': False,
@@ -49,16 +64,21 @@ class UnifiedDataLoader:
                 continue
 
             target = self.targets[target_type]
+            config = target_config.get('config', {})
 
             # Validate configuration
-            is_valid = await target.validate(data, target_config['config'])
-            if not is_valid:
-                results[target_type] = {'success': False, 'error': 'Invalid configuration or data'}
+            try:
+                is_valid = await target.validate(data, config)
+                if not is_valid:
+                    results[target_type] = {'success': False, 'error': 'Invalid configuration or data'}
+                    continue
+            except Exception as e:
+                results[target_type] = {'success': False, 'error': str(e)}
                 continue
 
             # Load data
             try:
-                result = await target.load(data, target_config['config'])
+                result = await target.load(data, config)
                 results[target_type] = result
             except Exception as e:
                 results[target_type] = {'success': False, 'error': str(e)}
