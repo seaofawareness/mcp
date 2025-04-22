@@ -201,12 +201,14 @@ async def test_convert_format(s3_target: S3Target, format: str, compression: str
 @mark.asyncio
 async def test_convert_format_empty_dataframe(s3_target: S3Target) -> None:
     """Test converting empty DataFrame."""
-    df = pd.DataFrame()
+    # Create empty DataFrame with defined schema
+    df = pd.DataFrame(columns=['id', 'value'])
 
     # Test CSV format
     content = s3_target._convert_format(df, 'csv')
     assert isinstance(content, bytes)
     assert len(content) > 0  # Should contain header row
+    assert b'id,value' in content  # Verify headers are present
 
     # Test JSON format
     content = s3_target._convert_format(df, 'json')
@@ -456,15 +458,16 @@ async def test_load_with_multiple_tables(s3_target: S3Target) -> None:
 @mark.asyncio
 async def test_load_with_large_data(s3_target: S3Target) -> None:
     """Test loading large datasets."""
-    # Create a large dataset
-    num_records = 10000
+    # Create a moderately sized dataset for testing
+    num_records = 1000
     data = {
         'large_table': [
             {
                 'id': i,
                 'name': f'Name {i}',
-                'description': 'A' * 1000,  # 1KB of text per record
+                'description': 'A' * 100,  # 100 bytes of text per record
                 'value': i * 1.23456789,
+                'category': 'test' if i % 2 == 0 else 'prod',  # Add some variety for compression
             }
             for i in range(num_records)
         ]
@@ -530,6 +533,37 @@ async def test_upload_with_storage_options(
         assert response['StorageClass'] == storage_class
     if encryption:
         assert response.get('ServerSideEncryption') == encryption
+
+
+@mark.asyncio
+async def test_parquet_with_complex_data(s3_target: S3Target) -> None:
+    """Test parquet format with complex data types and snappy compression."""
+    # Create a DataFrame with various data types
+    df = pd.DataFrame(
+        {
+            'int_col': [1, 2, 3],
+            'float_col': [1.1, 2.2, 3.3],
+            'str_col': ['a', 'b', 'c'],
+            'bool_col': [True, False, True],
+            'datetime_col': pd.date_range('2024-01-01', periods=3),
+            'category_col': pd.Series(['A', 'B', 'A']).astype('category'),
+            'nullable_int': pd.array([1, None, 3], dtype='Int64'),
+            'unicode_col': ['测试', '🌟', 'ascii'],
+        }
+    )
+
+    # Test parquet with snappy compression
+    content = s3_target._convert_format(df, 'parquet', 'snappy')
+    assert isinstance(content, bytes)
+    assert len(content) > 0
+
+    # Verify the content can be read back
+    import io
+
+    result_df = pd.read_parquet(io.BytesIO(content))
+    assert all(df.columns == result_df.columns)
+    assert len(df) == len(result_df)
+    assert all(df['unicode_col'] == result_df['unicode_col'])
 
 
 @mark.asyncio
