@@ -1,6 +1,5 @@
 """Tests for S3 storage functionality."""
 
-import os
 import pandas as pd
 import pytest
 from awslabs.syntheticdata_mcp_server.storage.s3 import S3Target
@@ -17,23 +16,23 @@ def s3_target(mock_s3) -> S3Target:
 def test_s3_target_init(monkeypatch) -> None:
     """Test S3Target initialization."""
     # Mock AWS profile
-    test_profile = "test_profile"
-    monkeypatch.setenv("AWS_PROFILE", test_profile)
-    
+    test_profile = 'test_profile'
+    monkeypatch.setenv('AWS_PROFILE', test_profile)
+
     # Mock boto3 session
     class MockSession:
         def __init__(self, profile_name=None):
             self.profile_name = profile_name
-        
+
         def client(self, service_name):
             assert service_name == 's3'
             return {}
-    
+
     monkeypatch.setattr('boto3.Session', MockSession)
-    
+
     # Create target
     target = S3Target()
-    
+
     # Verify initialization
     assert isinstance(target.executor, ThreadPoolExecutor)
     assert target.executor._max_workers == 4
@@ -48,11 +47,11 @@ async def test_validate_with_empty_data(s3_target: S3Target) -> None:
         'prefix': 'data/',
         'format': 'csv',
     }
-    
+
     # Test with empty dict
     is_valid = await s3_target.validate({}, config)
     assert is_valid is False
-    
+
     # Test with None
     is_valid = await s3_target.validate(None, config)
     assert is_valid is False
@@ -66,11 +65,11 @@ async def test_validate_with_invalid_data_structure(s3_target: S3Target) -> None
         'prefix': 'data/',
         'format': 'csv',
     }
-    
+
     # Test with non-list records
     invalid_data = {
         'table1': {'id': 1, 'name': 'test'},  # Should be a list
-        'table2': [{'id': 2, 'name': 'test2'}]
+        'table2': [{'id': 2, 'name': 'test2'}],
     }
     is_valid = await s3_target.validate(invalid_data, config)
     assert is_valid is False
@@ -79,18 +78,19 @@ async def test_validate_with_invalid_data_structure(s3_target: S3Target) -> None
 @mark.asyncio
 async def test_validate_s3_access_error(s3_target: S3Target, sample_data: dict) -> None:
     """Test validation when S3 access fails."""
+
     def mock_head_bucket(**kwargs):
-        raise Exception("Access denied")
-    
+        raise Exception('Access denied')
+
     # Replace head_bucket with mock
     s3_target.s3_client.head_bucket = mock_head_bucket
-    
+
     config = {
         'bucket': 'test-bucket',
         'prefix': 'data/',
         'format': 'csv',
     }
-    
+
     is_valid = await s3_target.validate(sample_data, config)
     assert is_valid is False
 
@@ -177,7 +177,7 @@ async def test_load_with_partitioning(s3_target: S3Target) -> None:
     # Should create partitioned files
     uploaded_files = result['uploaded_files']
     assert len(uploaded_files) == 2  # One for each status value
-    
+
     # Verify partition paths
     keys = [f['key'] for f in uploaded_files]
     assert any(k.endswith('orders.csv') for k in keys)  # Check file name
@@ -202,17 +202,17 @@ async def test_convert_format(s3_target: S3Target, format: str, compression: str
 async def test_convert_format_empty_dataframe(s3_target: S3Target) -> None:
     """Test converting empty DataFrame."""
     df = pd.DataFrame()
-    
+
     # Test CSV format
     content = s3_target._convert_format(df, 'csv')
     assert isinstance(content, bytes)
     assert len(content) > 0  # Should contain header row
-    
+
     # Test JSON format
     content = s3_target._convert_format(df, 'json')
     assert isinstance(content, bytes)
     assert content == b'[]'  # Empty JSON array
-    
+
     # Test Parquet format
     content = s3_target._convert_format(df, 'parquet')
     assert isinstance(content, bytes)
@@ -222,18 +222,20 @@ async def test_convert_format_empty_dataframe(s3_target: S3Target) -> None:
 @mark.asyncio
 async def test_convert_format_with_special_characters(s3_target: S3Target) -> None:
     """Test handling of special characters in data."""
-    df = pd.DataFrame({
-        'id': [1, 2],
-        'text': ['Test, with comma', 'Test\nwith\nnewlines'],
-        'unicode': ['测试', '🌟']
-    })
-    
+    df = pd.DataFrame(
+        {
+            'id': [1, 2],
+            'text': ['Test, with comma', 'Test\nwith\nnewlines'],
+            'unicode': ['测试', '🌟'],
+        }
+    )
+
     # Test CSV format
     csv_content = s3_target._convert_format(df, 'csv')
     assert isinstance(csv_content, bytes)
     assert b'Test, with comma' in csv_content
     assert b'Test\nwith\nnewlines' in csv_content
-    
+
     # Test JSON format
     json_content = s3_target._convert_format(df, 'json')
     assert isinstance(json_content, bytes)
@@ -257,18 +259,16 @@ async def test_convert_format_compression_options(
 ) -> None:
     """Test different compression options for each format."""
     # Create a DataFrame with repetitive data for better compression
-    df = pd.DataFrame({
-        'id': range(100),
-        'text': ['test text ' * 10] * 100,
-        'numbers': [1.23456789] * 100
-    })
-    
+    df = pd.DataFrame(
+        {'id': range(100), 'text': ['test text ' * 10] * 100, 'numbers': [1.23456789] * 100}
+    )
+
     # Get uncompressed size
     uncompressed = s3_target._convert_format(df, format, None)
-    
+
     # Get compressed size
     compressed = s3_target._convert_format(df, format, compression)
-    
+
     # Verify compression ratio
     if compression:
         ratio = len(compressed) / len(uncompressed)
@@ -288,33 +288,32 @@ async def test_convert_format_invalid(s3_target: S3Target) -> None:
 async def test_apply_partitioning_multiple_columns(s3_target: S3Target) -> None:
     """Test partitioning by multiple columns."""
     dataframes = {
-        'sales': pd.DataFrame({
-            'order_id': range(1, 5),
-            'region': ['US', 'US', 'EU', 'EU'],
-            'status': ['completed', 'pending', 'completed', 'pending'],
-            'amount': [100, 200, 300, 400]
-        })
+        'sales': pd.DataFrame(
+            {
+                'order_id': range(1, 5),
+                'region': ['US', 'US', 'EU', 'EU'],
+                'status': ['completed', 'pending', 'completed', 'pending'],
+                'amount': [100, 200, 300, 400],
+            }
+        )
     }
-    
-    partition_config = {
-        'columns': ['region', 'status'],
-        'drop_columns': True
-    }
-    
+
+    partition_config = {'columns': ['region', 'status'], 'drop_columns': True}
+
     result = s3_target._apply_partitioning(dataframes, partition_config)
-    
+
     # Check partitions
     assert 'sales' in result
     partitions = result['sales']
     assert len(partitions) == 4  # US/completed, US/pending, EU/completed, EU/pending
-    
+
     # Check partition keys
     keys = list(partitions.keys())
     assert 'US/completed' in str(keys)
     assert 'US/pending' in str(keys)
     assert 'EU/completed' in str(keys)
     assert 'EU/pending' in str(keys)
-    
+
     # Check columns are dropped
     for partition_df in partitions.values():
         assert 'region' not in partition_df.columns
@@ -324,20 +323,12 @@ async def test_apply_partitioning_multiple_columns(s3_target: S3Target) -> None:
 @mark.asyncio
 async def test_apply_partitioning_missing_columns(s3_target: S3Target) -> None:
     """Test partitioning when columns don't exist."""
-    dataframes = {
-        'data': pd.DataFrame({
-            'id': [1, 2],
-            'value': ['a', 'b']
-        })
-    }
-    
-    partition_config = {
-        'columns': ['missing_column'],
-        'drop_columns': True
-    }
-    
+    dataframes = {'data': pd.DataFrame({'id': [1, 2], 'value': ['a', 'b']})}
+
+    partition_config = {'columns': ['missing_column'], 'drop_columns': True}
+
     result = s3_target._apply_partitioning(dataframes, partition_config)
-    
+
     # Should return original DataFrame in default partition
     assert 'data' in result
     assert '' in result['data']  # Default partition key
@@ -348,24 +339,19 @@ async def test_apply_partitioning_missing_columns(s3_target: S3Target) -> None:
 async def test_apply_partitioning_with_null_values(s3_target: S3Target) -> None:
     """Test partitioning with null values."""
     dataframes = {
-        'data': pd.DataFrame({
-            'id': [1, 2, 3, 4],
-            'category': ['A', None, 'B', pd.NA],
-            'value': [10, 20, 30, 40]
-        })
+        'data': pd.DataFrame(
+            {'id': [1, 2, 3, 4], 'category': ['A', None, 'B', pd.NA], 'value': [10, 20, 30, 40]}
+        )
     }
-    
-    partition_config = {
-        'columns': ['category'],
-        'drop_columns': True
-    }
-    
+
+    partition_config = {'columns': ['category'], 'drop_columns': True}
+
     result = s3_target._apply_partitioning(dataframes, partition_config)
-    
+
     # Check partitions
     partitions = result['data']
     assert len(partitions) == 2  # A, B (null values are skipped)
-    
+
     # Verify values are handled
     keys = list(partitions.keys())
     assert 'A' in str(keys)
@@ -435,34 +421,31 @@ async def test_upload_to_s3_error(s3_target: S3Target) -> None:
 async def test_load_with_multiple_tables(s3_target: S3Target) -> None:
     """Test loading multiple tables simultaneously."""
     data = {
-        'customers': [
-            {'id': 1, 'name': 'Alice'},
-            {'id': 2, 'name': 'Bob'}
-        ],
+        'customers': [{'id': 1, 'name': 'Alice'}, {'id': 2, 'name': 'Bob'}],
         'orders': [
             {'id': 1, 'customer_id': 1, 'amount': 100},
             {'id': 2, 'customer_id': 1, 'amount': 200},
-            {'id': 3, 'customer_id': 2, 'amount': 300}
+            {'id': 3, 'customer_id': 2, 'amount': 300},
         ],
         'products': [
             {'id': 1, 'name': 'Product A', 'price': 50},
-            {'id': 2, 'name': 'Product B', 'price': 75}
-        ]
+            {'id': 2, 'name': 'Product B', 'price': 75},
+        ],
     }
-    
+
     config = {
         'bucket': 'test-bucket',
         'prefix': 'data/',
         'format': 'csv',
-        'storage': {'class': 'STANDARD', 'encryption': 'AES256'}
+        'storage': {'class': 'STANDARD', 'encryption': 'AES256'},
     }
-    
+
     result = await s3_target.load(data, config)
-    
+
     assert result['success'] is True
     assert len(result['uploaded_files']) == 3  # One file per table
     assert result['total_records'] == 7  # Total records across all tables
-    
+
     # Verify file paths
     uploaded_keys = [f['key'] for f in result['uploaded_files']]
     assert 'data/customers/customers.csv' in uploaded_keys
@@ -481,26 +464,26 @@ async def test_load_with_large_data(s3_target: S3Target) -> None:
                 'id': i,
                 'name': f'Name {i}',
                 'description': 'A' * 1000,  # 1KB of text per record
-                'value': i * 1.23456789
+                'value': i * 1.23456789,
             }
             for i in range(num_records)
         ]
     }
-    
+
     config = {
         'bucket': 'test-bucket',
         'prefix': 'data/',
         'format': 'parquet',  # Use Parquet for better performance
         'compression': 'snappy',
-        'storage': {'class': 'STANDARD'}
+        'storage': {'class': 'STANDARD'},
     }
-    
+
     result = await s3_target.load(data, config)
-    
+
     assert result['success'] is True
     assert result['total_records'] == num_records
     assert len(result['uploaded_files']) == 1
-    
+
     # Verify the file was uploaded
     uploaded_file = result['uploaded_files'][0]
     assert uploaded_file['key'] == 'data/large_table/large_table.parquet'
@@ -523,29 +506,25 @@ async def test_upload_with_storage_options(
 ) -> None:
     """Test different S3 storage classes and encryption options."""
     data = {'test': [{'id': 1, 'value': 'test'}]}
-    
+
     config = {
         'bucket': 'test-bucket',
         'prefix': 'data/',
         'format': 'json',
-        'storage': {
-            'class': storage_class,
-            **(({'encryption': encryption} if encryption else {}))
-        }
+        'storage': {'class': storage_class, **({'encryption': encryption} if encryption else {})},
     }
-    
+
     result = await s3_target.load(data, config)
-    
+
     assert result['success'] is True
     assert len(result['uploaded_files']) == 1
-    
+
     # Verify storage options were applied
     uploaded_file = result['uploaded_files'][0]
     response = s3_target.s3_client.head_object(
-        Bucket=uploaded_file['bucket'],
-        Key=uploaded_file['key']
+        Bucket=uploaded_file['bucket'], Key=uploaded_file['key']
     )
-    
+
     # For STANDARD storage class, the key is not included in response
     if storage_class != 'STANDARD':
         assert response['StorageClass'] == storage_class
@@ -557,17 +536,13 @@ async def test_upload_with_storage_options(
 async def test_load_error_handling(s3_target: S3Target) -> None:
     """Test error handling during load operation."""
     data = {'test': [{'id': 1}]}
-    
+
     # Test with invalid format
-    config_invalid_format = {
-        'bucket': 'test-bucket',
-        'prefix': 'data/',
-        'format': 'invalid'
-    }
+    config_invalid_format = {'bucket': 'test-bucket', 'prefix': 'data/', 'format': 'invalid'}
     # First validate the config (should fail)
     is_valid = await s3_target.validate(data, config_invalid_format)
     assert not is_valid
-    
+
     # Then try to load (should fail)
     result = await s3_target.load(data, config_invalid_format)
     assert not result['success']

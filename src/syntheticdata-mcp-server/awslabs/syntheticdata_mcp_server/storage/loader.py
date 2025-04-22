@@ -44,16 +44,13 @@ class UnifiedDataLoader:
             if not isinstance(target_config, dict):
                 results['unknown'] = {
                     'success': False,
-                    'error': 'Invalid target configuration format'
+                    'error': 'Invalid target configuration format',
                 }
                 continue
 
             target_type = target_config.get('type')
             if not target_type:
-                results['unknown'] = {
-                    'success': False,
-                    'error': 'Missing target type'
-                }
+                results['unknown'] = {'success': False, 'error': 'Missing target type'}
                 continue
 
             if target_type not in self.targets:
@@ -70,7 +67,10 @@ class UnifiedDataLoader:
             try:
                 is_valid = await target.validate(data, config)
                 if not is_valid:
-                    results[target_type] = {'success': False, 'error': 'Invalid configuration or data'}
+                    results[target_type] = {
+                        'success': False,
+                        'error': 'Invalid configuration or data',
+                    }
                     continue
             except Exception as e:
                 results[target_type] = {'success': False, 'error': str(e)}
