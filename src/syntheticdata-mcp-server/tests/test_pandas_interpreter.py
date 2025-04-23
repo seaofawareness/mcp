@@ -111,7 +111,7 @@ def test_execute_pandas_code_invalid_directory(temp_dir: str) -> None:
     result = execute_pandas_code(code, invalid_dir)
 
     assert result['success'] is False
-    assert result['message'].startswith("[Errno 20] Not a directory:")
+    assert result['message'].startswith('[Errno 20] Not a directory:')
 
 
 def test_check_referential_integrity() -> None:

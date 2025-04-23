@@ -25,43 +25,83 @@ from typing import Any, Dict, List, Optional
 
 
 class ExecutePandasCodeInput(BaseModel):
+    """Input model for executing pandas code to generate synthetic data.
+
+    This model defines the required parameters for running pandas code in a restricted
+    environment and saving the resulting DataFrames as CSV files.
+
+    Attributes:
+        code: Python code that uses pandas to generate synthetic data. The code should
+            define one or more pandas DataFrames. Pandas is already available as "pd".
+        workspace_dir: The current workspace directory. Critical for saving files to
+            the user's current project.
+        output_dir: Optional subdirectory within workspace_dir to save CSV files to.
+            If not provided, files will be saved directly to workspace_dir.
+    """
+
     code: str = Field(
         ...,
-        description='Python code that uses pandas to generate synthetic data. The code should define one or more pandas DataFrames. Pandas is already available as "pd".'
+        description='Python code that uses pandas to generate synthetic data. The code should define one or more pandas DataFrames. Pandas is already available as "pd".',
     )
     workspace_dir: str = Field(
         ...,
-        description="CRITICAL: The current workspace directory. Assistant must always provide this parameter to save files to the user's current project."
+        description="CRITICAL: The current workspace directory. Assistant must always provide this parameter to save files to the user's current project.",
     )
     output_dir: Optional[str] = Field(
         None,
-        description='Optional subdirectory within workspace_dir to save CSV files to. If not provided, files will be saved directly to workspace_dir.'
+        description='Optional subdirectory within workspace_dir to save CSV files to. If not provided, files will be saved directly to workspace_dir.',
     )
 
 
 class ValidateAndSaveDataInput(BaseModel):
+    """Input model for validating and saving data as CSV files.
+
+    This model defines the required parameters for validating JSON Lines data structure
+    and saving the data as CSV files using pandas.
+
+    Attributes:
+        data: Dictionary mapping table names to lists of records. Each record should
+            be a dictionary mapping column names to values.
+        workspace_dir: The current workspace directory. Critical for saving files to
+            the user's current project.
+        output_dir: Optional subdirectory within workspace_dir to save CSV files to.
+            If not provided, files will be saved directly to workspace_dir.
+    """
+
     data: Dict[str, List[Dict]] = Field(
         ...,
-        description='Dictionary mapping table names to lists of records. Each record should be a dictionary mapping column names to values.'
+        description='Dictionary mapping table names to lists of records. Each record should be a dictionary mapping column names to values.',
     )
     workspace_dir: str = Field(
         ...,
-        description="CRITICAL: The current workspace directory. Assistant must always provide this parameter to save files to the user's current project."
+        description="CRITICAL: The current workspace directory. Assistant must always provide this parameter to save files to the user's current project.",
     )
     output_dir: Optional[str] = Field(
         None,
-        description='Optional subdirectory within workspace_dir to save CSV files to. If not provided, files will be saved directly to workspace_dir.'
+        description='Optional subdirectory within workspace_dir to save CSV files to. If not provided, files will be saved directly to workspace_dir.',
     )
 
 
 class LoadToStorageInput(BaseModel):
+    """Input model for loading data to storage targets.
+
+    This model defines the required parameters for loading data to configured storage
+    targets like S3, with support for various formats and optimizations.
+
+    Attributes:
+        data: Dictionary mapping table names to lists of records. Each record should
+            be a dictionary mapping column names to values.
+        targets: List of target configurations. Each target should have a "type"
+            (e.g., "s3") and target-specific "config".
+    """
+
     data: Dict[str, List[Dict]] = Field(
         ...,
-        description='Dictionary mapping table names to lists of records. Each record should be a dictionary mapping column names to values.'
+        description='Dictionary mapping table names to lists of records. Each record should be a dictionary mapping column names to values.',
     )
     targets: List[Dict[str, Any]] = Field(
         ...,
-        description='List of target configurations. Each target should have a "type" (e.g., "s3") and target-specific "config".'
+        description='List of target configurations. Each target should have a "type" (e.g., "s3") and target-specific "config".',
     )
 
 
@@ -124,10 +164,7 @@ async def get_data_generation_instructions(
     try:
         # Validate input
         if not business_description or not business_description.strip():
-            return {
-                'success': False,
-                'error': 'Business description cannot be empty'
-            }
+            return {'success': False, 'error': 'Business description cannot be empty'}
 
         # Extract key entities and concepts from the business description
         entities = _extract_key_entities(business_description)
