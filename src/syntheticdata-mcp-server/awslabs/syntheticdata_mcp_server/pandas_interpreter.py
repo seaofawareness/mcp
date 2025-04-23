@@ -74,8 +74,24 @@ def execute_pandas_code(code_string: str, output_dir: str) -> Dict[str, Any]:
     Returns:
         Dict containing execution results and information about saved files
     """
+    # Verify directory path is valid before attempting anything
+    if os.path.exists(output_dir) and not os.path.isdir(output_dir):
+        return {
+            'success': False,
+            'message': 'No such file or directory',
+            'error': 'No such file or directory',
+        }
+
     # Parse and execute the code
     try:
+        # Check for security violations
+        if any(keyword in code_string for keyword in ['import', '__import__', 'exec', 'eval']):
+            return {
+                'success': False,
+                'message': 'No DataFrames found in the code',
+                'error': 'No DataFrames found in the code',
+            }
+
         tree = ast.parse(code_string)
     except SyntaxError:
         # For syntax errors, return "No DataFrames found"
@@ -106,18 +122,11 @@ def execute_pandas_code(code_string: str, output_dir: str) -> Dict[str, Any]:
                 'error': 'No DataFrames found in the code',
             }
 
-        # Verify directory path is valid before attempting to create
-        if os.path.exists(output_dir) and not os.path.isdir(output_dir):
-            return {
-                'success': False,
-                'message': 'No such file or directory',
-                'error': 'No such file or directory',
-            }
-
         # Try to create output directory and save files
+        saved_files = []
+        integrity_issues = []
         try:
             os.makedirs(output_dir, exist_ok=True)
-            saved_files = []
             for df_name, df in dataframes.items():
                 file_path = os.path.join(output_dir, f'{df_name}.csv')
                 df.to_csv(file_path, index=False)
@@ -129,24 +138,23 @@ def execute_pandas_code(code_string: str, output_dir: str) -> Dict[str, Any]:
                         'columns': df.columns.tolist(),
                     }
                 )
-        except (OSError, PermissionError):
+
+            # Check referential integrity if multiple dataframes exist
+            if len(dataframes) > 1:
+                integrity_issues = check_referential_integrity(dataframes)
+
+            return {
+                'success': True,
+                'message': f'Saved {len(saved_files)} DataFrames to {output_dir}',
+                'saved_files': saved_files,
+                'integrity_issues': integrity_issues,
+            }
+        except (OSError, PermissionError) as e:
             return {
                 'success': False,
-                'message': 'No such file or directory',
-                'error': 'No such file or directory',
+                'message': str(e),
+                'error': 'Failed to save DataFrames',
             }
-
-        # Check referential integrity if multiple dataframes exist
-        integrity_issues = []
-        if len(dataframes) > 1:
-            integrity_issues = check_referential_integrity(dataframes)
-
-        return {
-            'success': True,
-            'message': f'Saved {len(saved_files)} DataFrames to {output_dir}',
-            'saved_files': saved_files,
-            'integrity_issues': integrity_issues,
-        }
 
     except Exception:
         # For any other errors, return "No DataFrames found"

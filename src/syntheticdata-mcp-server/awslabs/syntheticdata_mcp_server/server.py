@@ -20,8 +20,49 @@ from awslabs.syntheticdata_mcp_server.pandas_interpreter import (
 )
 from awslabs.syntheticdata_mcp_server.storage import UnifiedDataLoader
 from mcp.server.fastmcp import FastMCP
-from pydantic import Field
+from pydantic import BaseModel, Field
 from typing import Any, Dict, List, Optional
+
+
+class ExecutePandasCodeInput(BaseModel):
+    code: str = Field(
+        ...,
+        description='Python code that uses pandas to generate synthetic data. The code should define one or more pandas DataFrames. Pandas is already available as "pd".'
+    )
+    workspace_dir: str = Field(
+        ...,
+        description="CRITICAL: The current workspace directory. Assistant must always provide this parameter to save files to the user's current project."
+    )
+    output_dir: Optional[str] = Field(
+        None,
+        description='Optional subdirectory within workspace_dir to save CSV files to. If not provided, files will be saved directly to workspace_dir.'
+    )
+
+
+class ValidateAndSaveDataInput(BaseModel):
+    data: Dict[str, List[Dict]] = Field(
+        ...,
+        description='Dictionary mapping table names to lists of records. Each record should be a dictionary mapping column names to values.'
+    )
+    workspace_dir: str = Field(
+        ...,
+        description="CRITICAL: The current workspace directory. Assistant must always provide this parameter to save files to the user's current project."
+    )
+    output_dir: Optional[str] = Field(
+        None,
+        description='Optional subdirectory within workspace_dir to save CSV files to. If not provided, files will be saved directly to workspace_dir.'
+    )
+
+
+class LoadToStorageInput(BaseModel):
+    data: Dict[str, List[Dict]] = Field(
+        ...,
+        description='Dictionary mapping table names to lists of records. Each record should be a dictionary mapping column names to values.'
+    )
+    targets: List[Dict[str, Any]] = Field(
+        ...,
+        description='List of target configurations. Each target should have a "type" (e.g., "s3") and target-specific "config".'
+    )
 
 
 mcp = FastMCP(
@@ -81,6 +122,13 @@ async def get_data_generation_instructions(
         A dictionary containing detailed instructions for generating synthetic data
     """
     try:
+        # Validate input
+        if not business_description or not business_description.strip():
+            return {
+                'success': False,
+                'error': 'Business description cannot be empty'
+            }
+
         # Extract key entities and concepts from the business description
         entities = _extract_key_entities(business_description)
 
@@ -127,20 +175,7 @@ async def get_data_generation_instructions(
 
 
 @mcp.tool(name='validate_and_save_data')
-async def validate_and_save_data(
-    data: Dict[str, List[Dict]] = Field(
-        ...,
-        description='Dictionary mapping table names to lists of records. Each record should be a dictionary mapping column names to values.',
-    ),
-    workspace_dir: str = Field(
-        ...,
-        description="CRITICAL: The current workspace directory. Assistant must always provide this parameter to save files to the user's current project.",
-    ),
-    output_dir: Optional[str] = Field(
-        None,
-        description='Optional subdirectory within workspace_dir to save CSV files to. If not provided, files will be saved directly to workspace_dir.',
-    ),
-) -> Dict:
+async def validate_and_save_data(input_data: ValidateAndSaveDataInput) -> Dict:
     """Validate JSON Lines data and save it as CSV files.
 
     This tool validates the structure of JSON Lines data and saves it as CSV files
@@ -155,23 +190,38 @@ async def validate_and_save_data(
         A dictionary containing validation results and paths to saved CSV files
     """
     try:
-        # Determine the output directory
-        save_dir = workspace_dir
-        if output_dir:
-            save_dir = os.path.join(workspace_dir, output_dir)
-            os.makedirs(save_dir, exist_ok=True)
-
-        # Validate and save each table
+        # Initialize results
         csv_paths = {}
         row_counts = {}
         validation_results = {}
+        save_dir = input_data.workspace_dir
+        if input_data.output_dir:
+            save_dir = os.path.join(input_data.workspace_dir, input_data.output_dir)
 
-        for table_name, records in data.items():
-            # Validate the table data
+        # Validate all tables first
+        for table_name, records in input_data.data.items():
             validation_result = _validate_table_data(table_name, records)
             validation_results[table_name] = validation_result
 
-            if validation_result['is_valid']:
+        # Check if all tables are valid
+        all_valid = all(result['is_valid'] for result in validation_results.values())
+
+        # If any validation failed, return error
+        if not all_valid:
+            error_messages = []
+            for table_name, result in validation_results.items():
+                if not result['is_valid']:
+                    error_messages.extend(result['errors'])
+            return {
+                'success': False,
+                'error': '; '.join(error_messages),
+                'validation_results': validation_results,
+            }
+
+        # Create directory and save tables
+        try:
+            os.makedirs(save_dir, exist_ok=True)
+            for table_name, records in input_data.data.items():
                 # Convert to DataFrame
                 df = pd.DataFrame(records)
 
@@ -183,13 +233,19 @@ async def validate_and_save_data(
                 csv_paths[table_name] = csv_path
                 row_counts[table_name] = len(df)
 
-        return {
-            'success': True,
-            'validation_results': validation_results,
-            'csv_paths': csv_paths,
-            'row_counts': row_counts,
-            'output_dir': save_dir,
-        }
+            return {
+                'success': True,
+                'validation_results': validation_results,
+                'csv_paths': csv_paths,
+                'row_counts': row_counts,
+                'output_dir': save_dir,
+            }
+        except Exception as e:
+            return {
+                'success': False,
+                'error': str(e),
+                'validation_results': validation_results,
+            }
     except Exception as e:
         return {
             'success': False,
@@ -198,16 +254,7 @@ async def validate_and_save_data(
 
 
 @mcp.tool(name='load_to_storage')
-async def load_to_storage(
-    data: Dict[str, List[Dict]] = Field(
-        ...,
-        description='Dictionary mapping table names to lists of records. Each record should be a dictionary mapping column names to values.',
-    ),
-    targets: List[Dict[str, Any]] = Field(
-        ...,
-        description='List of target configurations. Each target should have a "type" (e.g., "s3") and target-specific "config".',
-    ),
-) -> Dict:
+async def load_to_storage(input_data: LoadToStorageInput) -> Dict:
     """Load data to one or more storage targets.
 
     This tool uses the UnifiedDataLoader to load data to configured storage targets.
@@ -239,7 +286,7 @@ async def load_to_storage(
     """
     try:
         loader = UnifiedDataLoader()
-        result = await loader.load_data(data, targets)
+        result = await loader.load_data(input_data.data, input_data.targets)
         return result
     except Exception as e:
         return {
@@ -249,20 +296,7 @@ async def load_to_storage(
 
 
 @mcp.tool(name='execute_pandas_code')
-async def execute_pandas_code(
-    code: str = Field(
-        ...,
-        description='Python code that uses pandas to generate synthetic data. The code should define one or more pandas DataFrames. Pandas is already available as "pd".',
-    ),
-    workspace_dir: str = Field(
-        ...,
-        description="CRITICAL: The current workspace directory. Assistant must always provide this parameter to save files to the user's current project.",
-    ),
-    output_dir: Optional[str] = Field(
-        None,
-        description='Optional subdirectory within workspace_dir to save CSV files to. If not provided, files will be saved directly to workspace_dir.',
-    ),
-) -> Dict:
+async def execute_pandas_code(input_data: ExecutePandasCodeInput) -> Dict:
     """Execute pandas code to generate synthetic data and save it as CSV files.
 
     This tool runs pandas code in a restricted environment to generate synthetic data.
@@ -310,17 +344,23 @@ async def execute_pandas_code(
     """
     try:
         # Determine the output directory
-        save_dir = workspace_dir
-        if output_dir:
-            save_dir = os.path.join(workspace_dir, output_dir)
+        save_dir = input_data.workspace_dir
+        if input_data.output_dir:
+            save_dir = os.path.join(input_data.workspace_dir, input_data.output_dir)
 
         # Use the imported execute_pandas_code function
-        result = _execute_pandas_code(code, save_dir)
+        result = _execute_pandas_code(input_data.code, save_dir)
 
-        # Add workspace information to the result
-        result['workspace_dir'] = workspace_dir
-        if output_dir:
-            result['output_subdir'] = output_dir
+        # Only create directory and set success if DataFrames were found
+        if result.get('saved_files'):
+            os.makedirs(save_dir, exist_ok=True)
+            result['success'] = True
+            result['workspace_dir'] = input_data.workspace_dir
+            if input_data.output_dir:
+                result['output_subdir'] = input_data.output_dir
+        else:
+            result['success'] = False
+            result['error'] = 'No DataFrames found in code'
 
         return result
     except Exception as e:

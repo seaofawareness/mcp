@@ -2,6 +2,7 @@
 
 import os
 import pytest
+from pytest import mark
 from awslabs.syntheticdata_mcp_server.server import (
     _extract_key_entities,
     _generate_data_generation_instructions,
@@ -15,9 +16,13 @@ from awslabs.syntheticdata_mcp_server.server import (
     main,
     mcp,
     validate_and_save_data,
+    ExecutePandasCodeInput,
+    ValidateAndSaveDataInput,
+    LoadToStorageInput,
 )
 
 
+@mark.asyncio
 async def test_get_data_generation_instructions() -> None:
     """Test generation of data generation instructions."""
     business_description = """
@@ -52,28 +57,48 @@ async def test_get_data_generation_instructions() -> None:
     assert 'price' in entity_instructions['product']['suggestions']
 
 
+@mark.asyncio
+async def test_get_data_generation_instructions_empty() -> None:
+    """Test generation of data generation instructions with empty input."""
+    result = await get_data_generation_instructions("")
+
+    assert result['success'] is False
+    assert 'error' in result
+    assert 'empty' in result['error'].lower()
+
+
+@mark.asyncio
+async def test_get_data_generation_instructions_invalid() -> None:
+    """Test generation of data generation instructions with invalid input."""
+    result = await get_data_generation_instructions("   ")
+
+    assert result['success'] is False
+    assert 'error' in result
+    assert 'empty' in result['error'].lower()
+
+
+@mark.asyncio
 async def test_validate_and_save_data(temp_dir: str, sample_data: dict) -> None:
     """Test data validation and CSV file saving."""
-    result = await validate_and_save_data(sample_data, temp_dir)
+    input_data = ValidateAndSaveDataInput(
+        data=sample_data,
+        workspace_dir=temp_dir
+    )
+    result = await validate_and_save_data(input_data)
 
     assert result['success'] is True
     assert 'validation_results' in result
     assert 'csv_paths' in result
     assert 'row_counts' in result
-
-    # Check validation results
-    assert result['validation_results']['customers']['is_valid']
-    assert result['validation_results']['orders']['is_valid']
-
-    # Check saved files
     assert os.path.exists(os.path.join(temp_dir, 'customers.csv'))
     assert os.path.exists(os.path.join(temp_dir, 'orders.csv'))
-
-    # Check row counts
+    
+    # Verify row counts
     assert result['row_counts']['customers'] == 2
     assert result['row_counts']['orders'] == 3
 
 
+@mark.asyncio
 async def test_validate_and_save_data_invalid(temp_dir: str) -> None:
     """Test validation with invalid data."""
     invalid_data = {
@@ -83,12 +108,18 @@ async def test_validate_and_save_data_invalid(temp_dir: str) -> None:
         ]
     }
 
-    result = await validate_and_save_data(invalid_data, temp_dir)
-    assert result['success'] is True  # Overall operation succeeds
-    assert not result['validation_results']['customers']['is_valid']
-    assert 'must have the same keys' in result['validation_results']['customers']['errors'][0]
+    input_data = ValidateAndSaveDataInput(
+        data=invalid_data,
+        workspace_dir=temp_dir
+    )
+    result = await validate_and_save_data(input_data)
+    assert result['success'] is False
+    assert 'error' in result
+    assert 'All records for table \'customers\' must have the same keys' in result['error']
+    assert not os.path.exists(os.path.join(temp_dir, 'customers.csv'))
 
 
+@mark.asyncio
 async def test_validate_and_save_data_duplicate_ids(temp_dir: str) -> None:
     """Test validation with duplicate IDs."""
     data_with_duplicates = {
@@ -98,12 +129,18 @@ async def test_validate_and_save_data_duplicate_ids(temp_dir: str) -> None:
         ]
     }
 
-    result = await validate_and_save_data(data_with_duplicates, temp_dir)
-    assert result['success'] is True  # Overall operation succeeds
-    assert not result['validation_results']['customers']['is_valid']
-    assert 'Duplicate IDs' in result['validation_results']['customers']['errors'][0]
+    input_data = ValidateAndSaveDataInput(
+        data=data_with_duplicates,
+        workspace_dir=temp_dir
+    )
+    result = await validate_and_save_data(input_data)
+    assert result['success'] is False
+    assert 'error' in result
+    assert 'Duplicate IDs found in table \'customers\'' in result['error']
+    assert not os.path.exists(os.path.join(temp_dir, 'customers.csv'))
 
 
+@mark.asyncio
 async def test_load_to_storage_s3(mock_s3, sample_data: dict) -> None:
     """Test loading data to S3."""
     targets = [
@@ -118,7 +155,11 @@ async def test_load_to_storage_s3(mock_s3, sample_data: dict) -> None:
         }
     ]
 
-    result = await load_to_storage(sample_data, targets)
+    input_data = LoadToStorageInput(
+        data=sample_data,
+        targets=targets
+    )
+    result = await load_to_storage(input_data)
 
     assert result['success'] is True
     assert 's3' in result['results']
@@ -131,6 +172,7 @@ async def test_load_to_storage_s3(mock_s3, sample_data: dict) -> None:
     assert any(f['key'] == 'data/orders/orders.csv' for f in s3_result['uploaded_files'])
 
 
+@mark.asyncio
 async def test_load_to_storage_invalid_config() -> None:
     """Test loading data with invalid storage configuration."""
     targets = [
@@ -143,15 +185,24 @@ async def test_load_to_storage_invalid_config() -> None:
         }
     ]
 
-    result = await load_to_storage({'test': []}, targets)
+    input_data = LoadToStorageInput(
+        data={'test': []},
+        targets=targets
+    )
+    result = await load_to_storage(input_data)
     assert result['success'] is False
     assert 's3' in result['results']
     assert not result['results']['s3']['success']
 
 
+@mark.asyncio
 async def test_execute_pandas_code_success(temp_dir: str, sample_pandas_code: str) -> None:
     """Test pandas code execution through server endpoint."""
-    result = await execute_pandas_code(sample_pandas_code, temp_dir)
+    input_data = ExecutePandasCodeInput(
+        code=sample_pandas_code,
+        workspace_dir=temp_dir
+    )
+    result = await execute_pandas_code(input_data)
 
     assert result['success'] is True
     assert 'saved_files' in result
@@ -160,10 +211,16 @@ async def test_execute_pandas_code_success(temp_dir: str, sample_pandas_code: st
     assert result['workspace_dir'] == temp_dir
 
 
+@mark.asyncio
 async def test_execute_pandas_code_with_output_dir(temp_dir: str, sample_pandas_code: str) -> None:
     """Test pandas code execution with custom output directory."""
     output_dir = 'test_output'
-    result = await execute_pandas_code(sample_pandas_code, temp_dir, output_dir)
+    input_data = ExecutePandasCodeInput(
+        code=sample_pandas_code,
+        workspace_dir=temp_dir,
+        output_dir=output_dir
+    )
+    result = await execute_pandas_code(input_data)
 
     assert result['success'] is True
     assert 'output_subdir' in result

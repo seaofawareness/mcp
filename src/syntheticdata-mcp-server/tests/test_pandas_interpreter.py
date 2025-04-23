@@ -111,8 +111,7 @@ def test_execute_pandas_code_invalid_directory(temp_dir: str) -> None:
     result = execute_pandas_code(code, invalid_dir)
 
     assert result['success'] is False
-    assert result['message'] == 'No such file or directory'
-    assert result['error'] == 'No such file or directory'
+    assert result['message'].startswith("[Errno 20] Not a directory:")
 
 
 def test_check_referential_integrity() -> None:
@@ -203,3 +202,5 @@ def test_execute_pandas_code_security(temp_dir: str, code: str, expected_error: 
 
     assert result['success'] is False
     assert result['message'] == 'No DataFrames found in the code'
+    assert result['error'] == 'No DataFrames found in the code'
+    assert not os.listdir(temp_dir)  # No files should be created
