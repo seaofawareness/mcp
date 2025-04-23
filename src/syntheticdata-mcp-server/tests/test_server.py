@@ -82,7 +82,8 @@ async def test_validate_and_save_data(temp_dir: str, sample_data: dict) -> None:
     """Test data validation and CSV file saving."""
     input_data = ValidateAndSaveDataInput(
         data=sample_data,
-        workspace_dir=temp_dir
+        workspace_dir=temp_dir,
+        output_dir=None
     )
     result = await validate_and_save_data(input_data)
 
@@ -110,7 +111,8 @@ async def test_validate_and_save_data_invalid(temp_dir: str) -> None:
 
     input_data = ValidateAndSaveDataInput(
         data=invalid_data,
-        workspace_dir=temp_dir
+        workspace_dir=temp_dir,
+        output_dir=None
     )
     result = await validate_and_save_data(input_data)
     assert result['success'] is False
@@ -131,7 +133,8 @@ async def test_validate_and_save_data_duplicate_ids(temp_dir: str) -> None:
 
     input_data = ValidateAndSaveDataInput(
         data=data_with_duplicates,
-        workspace_dir=temp_dir
+        workspace_dir=temp_dir,
+        output_dir=None
     )
     result = await validate_and_save_data(input_data)
     assert result['success'] is False
@@ -200,7 +203,8 @@ async def test_execute_pandas_code_success(temp_dir: str, sample_pandas_code: st
     """Test pandas code execution through server endpoint."""
     input_data = ExecutePandasCodeInput(
         code=sample_pandas_code,
-        workspace_dir=temp_dir
+        workspace_dir=temp_dir,
+        output_dir=None
     )
     result = await execute_pandas_code(input_data)
 
