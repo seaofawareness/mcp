@@ -51,7 +51,6 @@ jobs:
           unzip q.zip
           # Must use --no-confirm when installing unattended
           ./q/install.sh --no-confirm
-          q --version
       - name: Setup Q Developer on macOS
         id: setup-q-macos
         if: runner.os == 'macOS'
@@ -60,12 +59,14 @@ jobs:
           # NOTE: Homebrew is pre-installed on image but not added to PATH.
           eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
           brew install amazon-q
+      - name: Finish Q Setup
+        id: finish-q-setup
+        run: |
+          q integrations install ssh
           q --version
       - name: Login to Q
         id: login-to-q
+        timeout-minutes: 2
         run: |
-          q login --help
           q login --license pro --identity-provider ${{ secrets.IDENTITY_PROVIDER }} --region ${{ vars.AWS_REGION }} --use-device-flow
-          q doctor --help
-          q integrations install ssh
           q doctor --all --verbose
