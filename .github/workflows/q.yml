@@ -1,7 +1,6 @@
 # This workflow installs and tests q developer
 name: Q
 on:
-  push:
   workflow_dispatch:
 permissions: {}
 jobs:
