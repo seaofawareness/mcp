@@ -51,9 +51,7 @@ jobs:
           unzip q.zip
           # Must use --no-confirm when installing unattended
           ./q/install.sh --no-confirm
-          echo "${PATH}"
           q --version
-          q doctor
       - name: Setup Q Developer on macOS
         id: setup-q-macos
         if: runner.os == 'macOS'
@@ -63,4 +61,8 @@ jobs:
           eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
           brew install amazon-q
           q --version
+      - name: Login to Q
+        id: login-to-q
+        run: |
+          q login
           q doctor
