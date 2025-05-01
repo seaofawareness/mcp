@@ -43,12 +43,14 @@ jobs:
           # Setup Q Developer
           # https://docs.aws.amazon.com/amazonq/latest/qdeveloper-ug/command-line-installing-ssh-setup-autocomplete.html
           ldd --version # If the version is 2.34 or newer, use the standard version. If it's older, use the musl version.
+          # ubuntu-latest is reporting version '2.39'
           curl --proto '=https' --tlsv1.2 -sSf "https://desktop-release.q.us-east-1.amazonaws.com/latest/q-x86_64-linux.zip" -o "q.zip"
           #curl --proto '=https' --tlsv1.2 -sSf "https://desktop-release.q.us-east-1.amazonaws.com/latest/q-aarch64-linux.zip" -o "q.zip"
           #curl --proto '=https' --tlsv1.2 -sSf "https://desktop-release.q.us-east-1.amazonaws.com/latest/q-x86_64-linux-musl.zip" -o "q.zip"
           #curl --proto '=https' --tlsv1.2 -sSf "https://desktop-release.q.us-east-1.amazonaws.com/latest/q-aarch64-linux-musl.zip" -o "q.zip"
-          unzip q.zip          
-          ./q/install.sh
+          unzip q.zip
+          # Must use --no-confirm when installing unattended
+          ./q/install.sh --no-confirm
           echo "${PATH}"
           q --version
           q doctor
