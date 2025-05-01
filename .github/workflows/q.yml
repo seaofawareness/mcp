@@ -65,5 +65,5 @@ jobs:
         id: login-to-q
         run: |
           q login --help
-          q login --license pro --identity-provider ${{ vars.IDENTITY_PROVIDER }} --region ${{ vars.AWS_REGION }} --use-device-flow
+          q login --license pro --identity-provider ${{ secrets.IDENTITY_PROVIDER }} --region ${{ vars.AWS_REGION }} --use-device-flow
           q doctor
