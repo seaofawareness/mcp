@@ -4,6 +4,8 @@ A suite of specialized MCP servers that help you get the most out of AWS, wherev
 
 [![GitHub](https://img.shields.io/badge/github-awslabs/mcp-blue.svg?style=flat&logo=github)](https://github.com/awslabs/mcp)
 [![License](https://img.shields.io/badge/license-Apache--2.0-brightgreen)](LICENSE)
+[![Codecov](https://img.shields.io/codecov/c/github/awslabs/mcp)](https://app.codecov.io/gh/awslabs/mcp)
+[![OSSF-Scorecard Score](https://img.shields.io/ossf-scorecard/github.com/awslabs/mcp)](https://scorecard.dev/viewer/?uri=github.com/awslabs/mcp)
 
 ## Table of Contents
 
@@ -27,6 +29,7 @@ A suite of specialized MCP servers that help you get the most out of AWS, wherev
   - Getting Started with Q Developer - Coming Soon
 - [Samples](#samples)
 - [Documentation](#documentation)
+- [Vibe coding](#vibe-coding)
 - [Additional Resources](#additional-resources)
 - [Security](#security)
 - [Contributing](#contributing)
@@ -156,7 +159,7 @@ A server for seamlessly creating diagrams using the Python diagrams package DSL.
 
 [![PyPI version](https://img.shields.io/pypi/v/awslabs.lambda-mcp-server.svg)](https://pypi.org/project/awslabs.lambda-mcp-server/)
 
-An server to select and run AWS Lambda function as MCP tools without code changes.
+A server to select and run AWS Lambda function as MCP tools without code changes.
 
 - This server acts as a bridge between MCP clients and AWS Lambda functions, allowing foundation models (FMs) to access and run Lambda functions as tools.
 - This can be used, for example, to access private resources such as internal applications and databases without the need to provide public network access.
@@ -181,7 +184,7 @@ A server for AWS Terraform best practices.
 
 ### Use Cases for the Servers
 
-For example, you can use the **AWS Documentation MCP Server** to help your AI assistant research and generate up-to-date code for any AWS service, like Amazon Bedrock Inline agents. Alternatively, you could use the **CDK MCP Server** or the **Terraform MCP Server** to have your AI assistant create infrastructure-as-code implementations that use the latest APIs and follow AWS best practices. With the **Cost Analysis MCP Server**, you could ask "What are my top 3 AWS services by cost last month?" or "How can I reduce my EC2 costs?" and receive detailed insights and actionable recommendations.
+For example, you can use the **AWS Documentation MCP Server** to help your AI assistant research and generate up-to-date code for any AWS service, like Amazon Bedrock Inline agents. Alternatively, you could use the **CDK MCP Server** or the **Terraform MCP Server** to have your AI assistant create infrastructure-as-code implementations that use the latest APIs and follow AWS best practices. With the **Cost Analysis MCP Server**, you could ask "What would be the estimated monthly cost for this CDK project before I deploy it?" or "Can you help me understand the potential AWS service expenses for this infrastructure design?" and receive detailed cost estimations and budget planning insights.
 
 ## Installation and Setup
 
@@ -273,6 +276,53 @@ Example configuration for Amazon Q CLI MCP (`~/.aws/amazonq/mcp.json`):
 ```
 
 See individual server READMEs for specific requirements and configuration options.
+
+### Running MCP servers in containers
+
+_This example uses docker with the "awslabs.nova-canvas-mcp-server and can be repeated for each MCP server_
+
+- Build and tag the image
+
+  ```base
+  cd src/nova-canvas-mcp-server
+  docker build -t awslabs/nova-canvas-mcp-server .
+  ```
+
+- Optionally save sensitive environmental variables in a file:
+
+  ```.env
+  # contents of a .env file with ficticious AWS temporary credentials
+  AWS_ACCESS_KEY_ID=ASIAIOSFODNN7EXAMPLE
+  AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+  AWS_SESSION_TOKEN=AQoEXAMPLEH4aoAH0gNCAPy...truncated...zrkuWJOgQs8IZZaIv2BXIa2R4Olgk
+  ```
+
+- Use the docker options: `--env`, `--env-file`, and `--volume` as needed because the `"env": {}` are not available within the container.
+
+  ```json
+  {
+    "mcpServers": {
+      "awslabs.nova-canvas-mcp-server": {
+        "command": "docker",
+        "args": [
+          "run",
+          "--rm",
+          "--interactive",
+          "--env",
+          "FASTMCP_LOG_LEVEL=ERROR",
+          "--env",
+          "AWS_REGION=us-east-1",
+          "--env-file",
+          "/full/path/to/.env",
+          "--volume",
+          "/full/path/to/.aws:/app/.aws",
+          "awslabs/nova-canvas-mcp-server:latest"
+        ],
+        "env": {}
+      }
+    }
+  }
+  ```
 
 ### Getting Started with Cline and Amazon Bedrock
 <details>
@@ -520,6 +570,10 @@ Documentation includes:
 - Installation and configuration instructions
 - API references
 - Usage examples
+
+## Vibe coding
+
+You can use these MCP servers with your AI coding assistant to [vibe code](https://en.wikipedia.org/wiki/Vibe_coding). For tips and tricks on how to improve your vibe coding experience, please refer to our [guide](./VIBE_CODING_TIPS_TRICKS.md).
 
 ## Additional Resources
 
