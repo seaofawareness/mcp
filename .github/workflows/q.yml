@@ -67,4 +67,5 @@ jobs:
           q login --help
           q login --license pro --identity-provider ${{ secrets.IDENTITY_PROVIDER }} --region ${{ vars.AWS_REGION }} --use-device-flow
           q doctor --help
-          q doctor --all
+          q integrations install ssh
+          q doctor --all --verbose
