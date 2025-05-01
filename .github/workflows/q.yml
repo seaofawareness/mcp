@@ -64,5 +64,6 @@ jobs:
       - name: Login to Q
         id: login-to-q
         run: |
+          q login --help
           q login
           q doctor
