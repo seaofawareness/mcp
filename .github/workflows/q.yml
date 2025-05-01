@@ -37,7 +37,10 @@ jobs:
     #       role-session-name: GitHubActions${{ github.run_id }}
     #       mask-aws-account-id: true
       - name: Setup Q Developer
-        id: setup-claude
+        id: setup-q
         run: |
+          # Setup Q Developer
+          # NOTE: Homebrew is pre-installed on image but not added to PATH.
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
           brew install amazon-q
           q --version
