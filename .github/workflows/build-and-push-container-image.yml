@@ -106,8 +106,8 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           tags: ${{ inputs.tag || 'awslabs/test-mcp-server' }}
           # context should set by the job's default working-directory
-          context: '.' # set by the default working-directory
-          file: ${{ inputs.docker-file || './Dockerfile' }}
+          # context: '.' # set by the default working-directory
+          # file: ${{ inputs.docker-file || './Dockerfile' }}
           push: false # During testing use `false`
           outputs: type=image,push-by-digest=true,name-canonical=true,push=true
 
