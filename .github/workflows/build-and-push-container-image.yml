@@ -101,7 +101,7 @@ jobs:
           # Disable all but the raw and sha
           tags: |
             type=schedule,enable=false
-            type=semver,enable=false
+            type=semver,pattern={{raw}},enable=false
             type=pep440,enable=false
             type=match,enable=false
             type=edge,enable=false
@@ -205,7 +205,7 @@ jobs:
           # Disable all but the raw and sha
           tags: |
             type=schedule,enable=false
-            type=semver,enable=false
+            type=semver,pattern={{raw}},enable=false
             type=pep440,enable=false
             type=match,enable=false
             type=edge,enable=false
