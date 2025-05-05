@@ -16,7 +16,11 @@ on:
         default: './src/core-mcp-server'
         type: string
         required: true
-
+      docker-file:
+        default: './src/core-mcp-server/Dockerfile'
+        type: string
+        required: false
+  
   workflow_call:
     inputs:
       tag:
@@ -24,10 +28,12 @@ on:
         required: true
       working-directory:
         default: ${{ github.workspace }}
+        description: 'The working directory for the Dockerfile.'
         type: string
         required: false
       docker-file:
-        default: './Dockerfile'
+        default: '${{ inputs.working-directory}}/Dockerfile'
+        description: 'Full path to the Dockerfile.'
         type: string
         required: false
         
@@ -54,11 +60,10 @@ permissions: {}
 jobs:
   build:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ${{ inputs.working-directory || './src/core-mcp-server' }}
     environment: release
-    # if: (github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call')
+    permissions:
+      contents: read
+    #if: (github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call')
     strategy:
       fail-fast: false
       matrix:
@@ -80,6 +85,8 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ inputs.tag || 'awslabs/test-mcp-server' }}
+          # These need to be updated because it is a monorepo 
+          #labels: 
 
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -105,9 +112,8 @@ jobs:
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
           tags: ${{ inputs.tag || 'awslabs/test-mcp-server' }}
-          # context should set by the job's default working-directory
-          # context: '.' # set by the default working-directory
-          # file: ${{ inputs.docker-file || './Dockerfile' }}
+          context: ${{ inputs.working-directory || './src/core-mcp-server' }}
+          file: ${{ inputs.docker-file || './src/core-mcp-server/Dockerfile' }}
           push: false # During testing use `false`
           outputs: type=image,push-by-digest=true,name-canonical=true,push=true
 
