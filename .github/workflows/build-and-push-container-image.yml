@@ -56,7 +56,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ${{ inputs.working-directory }}
+        working-directory: ${{ inputs.working-directory || './src/core-mcp-server' }}
     environment: release
     # if: (github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call')
     strategy:
@@ -141,7 +141,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ inputs.tag }}
+          images: ${{ inputs.tag || 'awslabs/test-mcp-server' }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -152,8 +152,8 @@ jobs:
         working-directory: ${{ runner.temp }}/digests
         run: |
           docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            $(printf '${{ inputs.tag }}@sha256:%s ' *)
+            $(printf '${{ inputs.tag || 'awslabs/test-mcp-server' }}@sha256:%s ' *)
 
       - name: Inspect image
         run: |
-          docker buildx imagetools inspect ${{ inputs.tag }}:${{ steps.meta.outputs.version }}
+          docker buildx imagetools inspect ${{ inputs.tag || 'awslabs/test-mcp-server' }}:${{ steps.meta.outputs.version }}
