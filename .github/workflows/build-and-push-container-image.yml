@@ -93,6 +93,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: WHERE AM I
+        run: |
+          pwd
+          ls -al
+
       - name: Build and push by digest
         id: build
         uses: docker/build-push-action@v6
@@ -101,7 +106,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           tags: ${{ inputs.tag || 'awslabs/test-mcp-server' }}
           context: ${{ inputs.working-directory || './src/core-mcp-server' }}
-          file: ${{ inputs.docker-file || 'Dockerfile' }}
+          file: ${{ inputs.docker-file || './Dockerfile' }}
           push: false # During testing use `false`
           outputs: type=image,push-by-digest=true,name-canonical=true,push=true
 
