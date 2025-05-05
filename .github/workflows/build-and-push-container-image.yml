@@ -8,32 +8,39 @@ on:
 
   workflow_dispatch:
     inputs:
-      tag:
-        default: 'awslabs/core-mcp-server'
+      tags:
+        description: 'The tags to associate to the image'
         type: string
         required: true
-      working-directory:
-        default: './src/core-mcp-server'
+      version:
+        description: 'The version to associate to the image'
         type: string
         required: true
-      docker-file:
-        default: './src/core-mcp-server/Dockerfile'
+      context:
+        description: 'The build directory for the context of the build'
+        type: string
+        required: true
+      file:
+        description: 'The Dockerfile full path'
         type: string
         required: false
   
   workflow_call:
     inputs:
-      tag:
+      tags:
+        description: 'The tags to associate to the image'
         type: string
         required: true
-      working-directory:
-        default: ${{ github.workspace }}
-        description: 'The working directory for the Dockerfile.'
+      version:
+        description: 'The version to associate to the image'
         type: string
-        required: false
-      docker-file:
-        default: '${{ inputs.working-directory}}/Dockerfile'
-        description: 'Full path to the Dockerfile.'
+        required: true
+      context:
+        description: 'The build directory for the context of the build'
+        type: string
+        required: true
+      file:
+        description: 'The Dockerfile full path'
         type: string
         required: false
         
@@ -63,6 +70,7 @@ jobs:
     environment: release
     permissions:
       contents: read
+      packages: write
     #if: (github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call')
     strategy:
       fail-fast: false
@@ -84,9 +92,33 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ inputs.tag || 'awslabs/test-mcp-server' }}
-          # These need to be updated because it is a monorepo 
-          #labels: 
+          #ADD LATER
+          # ${{ inputs.tags || 'public.ecr.aws/mcp/awslabs/core-mcp-server' }}
+          images: |
+            ${{ inputs.tags || 'awslabs/core-mcp-server' }}
+            ${{ inputs.tags || 'ghcr.io/awslabs/mcp/awslabs/core-mcp-server' }}
+          
+          # Disable all but the raw and sha
+          tags: |
+            type=schedule,enable=false
+            type=semver,enable=false
+            type=pep440,enable=false
+            type=match,enable=false
+            type=edge,enable=false
+            type=ref,enable=false
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,format=long,enable=true
+            type=raw,value=${{ inputs.version || '0.0.0' }},enable=${{ inputs.version }}
+          # Override because it is a monorepo
+          labels: |
+            maintainer=AWSLabs MCP
+            org.opencontainers.image.description=Test Description
+            org.opencontainers.image.source=https://github.com/awslabs/mcp/tree/main/src/core-mcp-server
+            org.opencontainers.image.title=awslabs.core-mcp-server
+            org.opencontainers.image.url=https://github.com/awslabs/mcp/tree/main/src/core-mcp-server
+            org.opencontainers.image.version=${{ inputs.version || '0.0.0' }}
+            org.opencontainers.image.vendor=Amazon Web Service, Inc.
+          #annotations: |
 
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -94,16 +126,17 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-
-      - name: WHERE AM I
-        run: |
-          pwd
-          ls -al
 
       - name: Build and push by digest
         id: build
@@ -111,10 +144,11 @@ jobs:
         with:
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
-          tags: ${{ inputs.tag || 'awslabs/test-mcp-server' }}
-          context: ${{ inputs.working-directory || './src/core-mcp-server' }}
-          file: ${{ inputs.docker-file || './src/core-mcp-server/Dockerfile' }}
-          push: false # During testing use `false`
+          tags: ${{ steps.meta.outputs.tags }}
+          #annotations: ${{ steps.meta.outputs.annotations }}
+          context: ${{ inputs.context || './src/core-mcp-server' }}
+          file: ${{ inputs.file || './src/core-mcp-server/Dockerfile' }}
+          push: true
           outputs: type=image,push-by-digest=true,name-canonical=true,push=true
 
       - name: Export digest
@@ -150,6 +184,12 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -157,19 +197,29 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ inputs.tag || 'awslabs/test-mcp-server' }}
+          #ADD LATER
+          # ${{ inputs.tags || 'public.ecr.aws/mcp/awslabs/core-mcp-server' }}
+          images: |
+            ${{ inputs.tags || 'awslabs/core-mcp-server' }}
+            ${{ inputs.tags || 'ghcr.io/awslabs/mcp/awslabs/core-mcp-server' }}
+          # Disable all but the raw and sha
           tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
+            type=schedule,enable=false
+            type=semver,enable=false
+            type=pep440,enable=false
+            type=match,enable=false
+            type=edge,enable=false
+            type=ref,enable=false
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,format=long,enable=true
+            type=raw,value=${{ inputs.version || '0.0.0' }},enable=${{ inputs.version }}
 
       - name: Create manifest list and push
         working-directory: ${{ runner.temp }}/digests
         run: |
           docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            $(printf '${{ inputs.tag || 'awslabs/test-mcp-server' }}@sha256:%s ' *)
+            $(printf '${{ inputs.tags || 'awslabs/core-mcp-server' }}@sha256:%s ' *)
 
       - name: Inspect image
         run: |
-          docker buildx imagetools inspect ${{ inputs.tag || 'awslabs/test-mcp-server' }}:${{ steps.meta.outputs.version }}
+          docker buildx imagetools inspect ${{ inputs.tags || 'awslabs/core-mcp-server' }}:${{ steps.meta.outputs.version }}
