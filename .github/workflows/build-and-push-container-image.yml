@@ -81,7 +81,7 @@ jobs:
             type=ref,event=pr,enable=false
             type=sha,format=long,enable=true
             type=raw,value=latest,enable=true # {{is_default_branch}} doesn't work
-            type=raw,value=${{ inputs.version || github.sha }},enable=${{ inputs.version || 'false' }}
+            type=raw,value=${{ inputs.version || github.sha }},enable=${{ (inputs.version && true) || 'false' }}
           labels: |
             maintainer=AWSLabs MCP
             org.opencontainers.image.description=AWS Labs ${{ inputs.image }} MCP Server
@@ -213,7 +213,7 @@ jobs:
             type=ref,event=pr,enable=false
             type=sha,format=long,enable=true
             type=raw,value=latest,enable=true # {{is_default_branch}} doesn't work
-            type=raw,value=${{ inputs.version || github.sha }},enable=${{ inputs.version || 'false' }}
+            type=raw,value=${{ inputs.version || github.sha }},enable=${{ (inputs.version && true) || 'false' }}
           labels: |
             maintainer=AWSLabs MCP
             org.opencontainers.image.description=AWS Labs ${{ inputs.image }} MCP Server
