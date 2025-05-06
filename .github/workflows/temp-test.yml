@@ -9,13 +9,13 @@ permissions: {}
 
 jobs:
   go-go-reusable-workflow:
-    uses: .github/workflows/build-and-push-container-image.yml
+    uses: .github/workflows/build-and-push-container-image.yml@${{ github.sha256}}
     with:
       secrets: inherit
-      tags: core-mcp-server
-      version: TBD # for now everything is the latest or by sha commit
-      context: ./src/core-mcp-server
-      file: ./src/core-mcp-server/Dockerfile
+      tags: 'core-mcp-server'
+      version: 'TBD' # for now everything is the latest or by sha commit
+      context: './src/core-mcp-server'
+      file: './src/core-mcp-server/Dockerfile'
 
     # steps:
     #   - name: Checkout repository
