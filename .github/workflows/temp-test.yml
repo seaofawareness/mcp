@@ -9,7 +9,7 @@ permissions: {}
 
 jobs:
   go-go-reusable-workflow:
-    uses: .github/workflows/build-and-push-container-image.yml@${{ github.sha256}}
+    uses: .github/workflows/build-and-push-container-image.yml
     with:
       secrets: inherit
       tags: 'core-mcp-server'

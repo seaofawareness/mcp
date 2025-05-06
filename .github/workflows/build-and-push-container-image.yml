@@ -5,25 +5,24 @@ on:
   # # Temporary to get started...
   # push:
   #   branches: ["feature/push-container-images"]
-
-  workflow_dispatch:
-    inputs:
-      image:
-        description: 'The image'
-        type: string
-        required: true
-      version:
-        description: 'The version to associate to the image'
-        type: string
-        required: true
-      context:
-        description: 'The build directory for the context of the build'
-        type: string
-        required: true
-      file:
-        description: 'The Dockerfile full path'
-        type: string
-        required: false
+  # workflow_dispatch:
+  #   inputs:
+  #     image:
+  #       description: 'The image'
+  #       type: string
+  #       required: true
+  #     version:
+  #       description: 'The version to associate to the image'
+  #       type: string
+  #       required: true
+  #     context:
+  #       description: 'The build directory for the context of the build'
+  #       type: string
+  #       required: true
+  #     file:
+  #       description: 'The Dockerfile full path'
+  #       type: string
+  #       required: false
 
   workflow_call:
     inputs:
@@ -71,7 +70,7 @@ jobs:
     permissions:
       contents: read
       packages: write
-    if: (github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call')
+    if: github.event_name == 'workflow_call'
     strategy:
       fail-fast: false
       matrix:
