@@ -13,6 +13,7 @@ jobs:
     name: Test Job
     permissions:
       contents: read
+      id-token: write
       packages: write
 
     runs-on: ubuntu-latest
