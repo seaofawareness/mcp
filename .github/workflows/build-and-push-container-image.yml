@@ -200,6 +200,7 @@ jobs:
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
+          registry: ghcr.io
           username: 'awslabs-mcp'
           password: ${{ secrets.BOT_GITHUB_TOKEN }}
 
