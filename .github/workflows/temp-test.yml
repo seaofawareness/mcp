@@ -29,7 +29,7 @@ jobs:
 
       - name: Build and Publish ${{ matrix.package }}
         id: build-and-publish
-        uses: .github/actions/build-and-push-container-image/
+        uses: awslabs/mcp/.github/actions/build-and-push-container-image@${{ github.sha }}
         if: hashFiles(format('./src/{0}/Dockerfile', matrix.package))
         with:
           image: ${{ matrix.package }}
