@@ -94,9 +94,9 @@ jobs:
         with:
           #ADD LATER
           # ${{ inputs.tags || 'public.ecr.aws/mcp/awslabs/core-mcp-server' }}
+          # ${{ inputs.tags || 'ghcr.io/awslabs/mcp/awslabs/core-mcp-server' }}
           images: |
             ${{ inputs.tags || 'docker.io/awslabs/core-mcp-server' }}
-            ${{ inputs.tags || 'ghcr.io/awslabs/mcp/awslabs/core-mcp-server' }}
           
           # Disable all but the raw and sha
           tags: |
@@ -110,7 +110,6 @@ jobs:
             type=ref,event=pr,enable=false
             type=sha,format=long,enable=true
             type=raw,value=${{ inputs.version || '0.0.0' }},enable=${{ inputs.version || 'false' }}
-          # Override because it is a monorepo
           labels: |
             maintainer=AWSLabs MCP
             org.opencontainers.image.description=Test Description
@@ -119,7 +118,6 @@ jobs:
             org.opencontainers.image.url=https://github.com/awslabs/mcp/tree/main/src/core-mcp-server
             org.opencontainers.image.version=${{ inputs.version || '0.0.0' }}
             org.opencontainers.image.vendor=Amazon Web Service, Inc.
-          #annotations: |
 
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -158,9 +156,8 @@ jobs:
         with:
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
-          #tags: ${{ steps.meta.outputs.tags }}
-          tags: docker.io/${{ github.repository_owner }}/core-mcp-server,ghcr.io/${{ github.repository }}/core-mcp-server,
-          #annotations: ${{ steps.meta.outputs.annotations }}
+          #tags: docker.io/${{ github.repository_owner }}/core-mcp-server,ghcr.io/${{ github.repository }}/core-mcp-server
+          tags: docker.io/${{ github.repository_owner }}/core-mcp-server
           context: ${{ inputs.context || './src/core-mcp-server' }}
           file: ${{ inputs.file || './src/core-mcp-server/Dockerfile' }}
           push: true
@@ -226,9 +223,10 @@ jobs:
         with:
           #ADD LATER
           # ${{ inputs.tags || 'public.ecr.aws/mcp/awslabs/core-mcp-server' }}
+          # ${{ inputs.tags || 'ghcr.io/awslabs/mcp/awslabs/core-mcp-server' }}
           images: |
-            ${{ inputs.tags || 'awslabs/core-mcp-server' }}
-            ${{ inputs.tags || 'ghcr.io/awslabs/mcp/awslabs/core-mcp-server' }}
+            ${{ inputs.tags || 'docker.io/awslabs/core-mcp-server' }}
+          
           # Disable all but the raw and sha
           tags: |
             type=schedule,enable=false
@@ -241,7 +239,16 @@ jobs:
             type=ref,event=pr,enable=false
             type=sha,format=long,enable=true
             type=raw,value=${{ inputs.version || '0.0.0' }},enable=${{ inputs.version || 'false' }}
-
+          # Override because it is a monorepo
+          labels: |
+            maintainer=AWSLabs MCP
+            org.opencontainers.image.description=Test Description
+            org.opencontainers.image.source=https://github.com/awslabs/mcp/tree/main/src/core-mcp-server
+            org.opencontainers.image.title=awslabs.core-mcp-server
+            org.opencontainers.image.url=https://github.com/awslabs/mcp/tree/main/src/core-mcp-server
+            org.opencontainers.image.version=${{ inputs.version || '0.0.0' }}
+            org.opencontainers.image.vendor=Amazon Web Service, Inc.
+  
       - name: Create manifest list and push
         working-directory: ${{ runner.temp }}/digests
         run: |
