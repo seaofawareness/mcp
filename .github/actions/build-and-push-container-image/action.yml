@@ -43,15 +43,113 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - id: get-version
-      name: Workflow ${{ github.workflow }} Job ${{ github.job }} Action ${{ github.action }} Number ${{ github.run_number }} Attempt ${{ github.run_attempt }}
+    - name: Docker meta
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        #ADD LATER
+        # public.ecr.aws/mcp/awslabs/${{ inputs.image }}
+        # ghcr.io/awslabs/mcp/awslabs/${{ inputs.image }}
+        images: |
+          docker.io/awslabs/${{ inputs.image }}
+
+        # Disable all but the raw and sha
+        tags: |
+          type=schedule,enable=false
+          type=semver,pattern={{raw}},enable=false
+          type=pep440,pattern={{raw}},enable=false
+          type=match,pattern=(.*),group=1,enable=false
+          type=edge,enable=false
+          type=ref,event=branch,enable=false
+          type=ref,event=tag,enable=false
+          type=ref,event=pr,enable=false
+          type=sha,format=long,enable=true
+          type=raw,value=latest,enable=true # {{is_default_branch}} doesn't work
+          type=raw,value=${{ inputs.version || github.sha }},enable=${{ (inputs.version && true) || 'false' }}
+        labels: |
+          maintainer=AWSLabs MCP
+          org.opencontainers.image.description=AWS Labs ${{ inputs.image }} MCP Server
+          org.opencontainers.image.source=https://github.com/awslabs/mcp/tree/main/src/${{ inputs.image }}
+          org.opencontainers.image.title=awslabs.${{ inputs.image }}
+          org.opencontainers.image.url=https://github.com/awslabs/mcp/tree/main/src/${{ inputs.image }}
+          org.opencontainers.image.version=${{ inputs.version || github.sha }}
+          org.opencontainers.image.vendor=Amazon Web Service, Inc.
+
+    - name: Login to Docker Hub
+      id: login-docker-hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Login to GitHub Container Registry
+      id: login-github-container-registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: awslabs-mcp
+        password: ${{ secrets.BOT_GITHUB_TOKEN }}
+
+    # - name: Login to Public ECR
+    #   uses: docker/login-action@v3
+    #   with:
+    #     registry: <aws-account-number>.dkr.ecr.<region>.amazonaws.com
+    #     registry: public.ecr.aws
+    #     username: ${{ vars.AWS_ACCESS_KEY_ID }}
+    #     password: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    #   env:
+    #     AWS_REGION: <region>
+
+    - name: Set up QEMU
+      id: setup-qemu
+      uses: docker/setup-qemu-action@v3
+
+    - name: Set up Docker Buildx
+      id: setup-buildx
+      uses: docker/setup-buildx-action@v3
+      with:
+        buildkitd-flags: --debug
+
+    - name: Build and push by digest
+      id: build
+      uses: docker/build-push-action@v6
+      with:
+        platforms: 'linux/amd64,linux/arm64' # less effient than matrix, but actions cannot deal with it...
+        labels: ${{ steps.meta.outputs.labels }}
+        #tags: docker.io/${{ github.repository_owner }}/${{ inputs.image }},ghcr.io/${{ github.repository }}/${{ inputs.image }}
+        tags: docker.io/${{ github.repository_owner }}/${{ inputs.image }}
+        context: ./src/${{ inputs.image }}
+        file: ./src/${{ inputs.image }}/Dockerfile
+        push: true
+        outputs: type=image,push-by-digest=true,name-canonical=true,push=true
+
+    - name: Export digest
+      run: |
+        mkdir -p ${{ runner.temp }}/digests
+        digest="${{ steps.build.outputs.digest }}"
+        touch "${{ runner.temp }}/digests/${digest#sha256:}"
+      shell: bash
+    - name: Upload digest
+      uses: actions/upload-artifact@v4
+      with:
+        name: digests
+        path: ${{ runner.temp }}/digests/*
+        if-no-files-found: error
+        retention-days: 1
+
+    - name: Create manifest list and push
+      working-directory: ${{ runner.temp }}/digests
+      run: |
+        docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+          $(printf 'awslabs/${{ inputs.image }}@sha256:%s ' *)
+      shell: bash
+    - name: Inspect image
+      run: |
+        docker buildx imagetools inspect awslabs/${{ inputs.image }}:${{ steps.meta.outputs.version }}
+      shell: bash
+    - name: Get version
+      id: get-version
       working-directory: ${{ env.GITHUB_WORKSPACE }}
       run: |
-        echo "Is there an ${{ inputs.image }}???"
-        pwd
-        ls -al .
-        echo "Reporting the input version as the output version..."
-        echo version="${{ inputs.version }}" >>"$GITHUB_OUTPUT"
-      env:
-        IMAGE: ${{ inputs.image }}
+        echo version="${{ steps.meta.outputs.version }}" >>"$GITHUB_OUTPUT"
       shell: bash
