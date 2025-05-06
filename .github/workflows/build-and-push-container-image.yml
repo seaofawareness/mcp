@@ -4,7 +4,7 @@ name: Build and Push Container Image
 on:
   # Temporary to get started...
   push:
-    branches: ["feature/push-container-images"]
+    # branches: ["feature/push-container-images"]
 
   workflow_dispatch:
     inputs:
