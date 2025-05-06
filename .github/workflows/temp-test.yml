@@ -9,14 +9,23 @@ permissions: {}
 
 jobs:
   go-go-reusable-workflow:
-    uses: .github/workflows/build-and-push-container-image.yml
+    name: go-go ${{ matrix.package }}
+    # https://github.com/.github/workflows/tree/feature/push-container-images/build-and-push-container-image.yml
+    uses: awslabs/mcp/.github/workflows/build-and-push-container-image.yml@feature/push-container-images
+    # uses: .github/workflows/build-and-push-container-image.yml
+    permissions:
+      contents: read
+      packages: write
+      actions: read
+    secrets: inherit
     with:
-      secrets: inherit
-      tags: 'core-mcp-server'
-      version: 'TBD' # for now everything is the latest or by sha commit
-      context: './src/core-mcp-server'
-      file: './src/core-mcp-server/Dockerfile'
-
+      image: ${{ matrix.package }}
+      version: ${{ github.run_id }}
+    strategy:
+      fail-fast: false
+      matrix:
+        package:
+          - core-mcp-server
     # steps:
     #   - name: Checkout repository
     #     id: checkout-repository

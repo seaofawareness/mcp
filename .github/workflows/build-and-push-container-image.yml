@@ -2,28 +2,6 @@
 # Builds a multi-architecture image based on input path
 name: Build and Push Container Image
 on:
-  # # Temporary to get started...
-  # push:
-  #   branches: ["feature/push-container-images"]
-  # workflow_dispatch:
-  #   inputs:
-  #     image:
-  #       description: 'The image'
-  #       type: string
-  #       required: true
-  #     version:
-  #       description: 'The version to associate to the image'
-  #       type: string
-  #       required: true
-  #     context:
-  #       description: 'The build directory for the context of the build'
-  #       type: string
-  #       required: true
-  #     file:
-  #       description: 'The Dockerfile full path'
-  #       type: string
-  #       required: false
-
   workflow_call:
     inputs:
       image:
@@ -31,22 +9,10 @@ on:
         type: string
         required: true
       version:
+        default: ''
         description: 'The version to associate to the image'
         type: string
-        required: true
-      context:
-        description: 'The build directory for the context of the build'
-        type: string
-        required: true
-      file:
-        description: 'The Dockerfile full path'
-        type: string
         required: false
-
-    # jobs:
-    #   pass-secrets-to-workflow:
-    #     uses: ./.github/workflows/build-and-push-container-image.yml
-    #     secrets: inherit
     secrets:
       DOCKERHUB_USERNAME:
         description: 'The docker login'
@@ -70,27 +36,23 @@ jobs:
     permissions:
       contents: read
       packages: write
-    if: github.event_name == 'workflow_call'
     strategy:
       fail-fast: false
       matrix:
         platform:
           - linux/amd64
           - linux/arm64
+
     steps:
       - name: Checkout repository
         id: checkout-repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Test Debugger Should be Empty
-        if: hashFiles('./src/git-repo-research-mcp-server/Dockerfile')
+      - name: Skip Determinator
         run: |
-          echo "NOPE"
-
-      - name: Test Dockerfile
-        if: hashFiles(inputs.file || './src/git-repo-research-mcp-server/Dockerfile')
-        run: |
-          echo "YES"
+          echo "Does \"./src/${{ inputs.image }}/Dockerfile\" exists?"
+          ls -al ./src/${{ inputs.image }}/Dockerfile
+          echo "${{ toJson(hashFiles('./src/**/Dockerfile')) }}"
 
       - name: Prepare
         run: |
@@ -102,10 +64,10 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           #ADD LATER
-          # 'public.ecr.aws/mcp/awslabs/${{ inputs.image || 'core-mcp-server' }}
-          # ghcr.io/awslabs/mcp/awslabs/${{ inputs.image || 'core-mcp-server' }}
+          # public.ecr.aws/mcp/awslabs/${{ inputs.image }}
+          # ghcr.io/awslabs/mcp/awslabs/${{ inputs.image }}
           images: |
-            docker.io/awslabs/${{ inputs.image || 'core-mcp-server' }}
+            docker.io/awslabs/${{ inputs.image }}
 
           # Disable all but the raw and sha
           tags: |
@@ -119,14 +81,14 @@ jobs:
             type=ref,event=pr,enable=false
             type=sha,format=long,enable=true
             type=raw,value=latest,enable=true # {{is_default_branch}} doesn't work
-            type=raw,value=${{ inputs.version || '0.0.0' }},enable=${{ inputs.version || 'false' }}
+            type=raw,value=${{ inputs.version || github.sha }},enable=${{ inputs.version || 'false' }}
           labels: |
             maintainer=AWSLabs MCP
-            org.opencontainers.image.description=Test Description
-            org.opencontainers.image.source=https://github.com/awslabs/mcp/tree/main/src/${{ inputs.image || 'core-mcp-server' }}
-            org.opencontainers.image.title=awslabs.${{ inputs.image || 'core-mcp-server' }}
-            org.opencontainers.image.url=https://github.com/awslabs/mcp/tree/main/src/${{ inputs.image || 'core-mcp-server' }}
-            org.opencontainers.image.version=${{ inputs.version || '0.0.0' }}
+            org.opencontainers.image.description=AWS Labs ${{ inputs.image }} MCP Server
+            org.opencontainers.image.source=https://github.com/awslabs/mcp/tree/main/src/${{ inputs.image }}
+            org.opencontainers.image.title=awslabs.${{ inputs.image }}
+            org.opencontainers.image.url=https://github.com/awslabs/mcp/tree/main/src/${{ inputs.image }}
+            org.opencontainers.image.version=${{ inputs.version || github.sha }}
             org.opencontainers.image.vendor=Amazon Web Service, Inc.
 
       - name: Login to Docker Hub
@@ -139,7 +101,7 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: awslabs-mcp # ${{ github.actor }}
+          username: awslabs-mcp
           password: ${{ secrets.BOT_GITHUB_TOKEN }}
 
       # - name: Login to Public ECR
@@ -166,10 +128,10 @@ jobs:
         with:
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
-          #tags: docker.io/${{ github.repository_owner }}/core-mcp-server,ghcr.io/${{ github.repository }}/core-mcp-server
-          tags: docker.io/${{ github.repository_owner }}/${{ inputs.image || 'core-mcp-server' }}
-          context: ${{ inputs.context || './src/core-mcp-server' }}
-          file: ${{ inputs.file || './src/core-mcp-server/Dockerfile' }}
+          #tags: docker.io/${{ github.repository_owner }}/${{ inputs.image }},ghcr.io/${{ github.repository }}/${{ inputs.image }}
+          tags: docker.io/${{ github.repository_owner }}/${{ inputs.image }}
+          context: ./src/${{ inputs.image }}
+          file: ./src/${{ inputs.image }}/Dockerfile
           push: true
           outputs: type=image,push-by-digest=true,name-canonical=true,push=true
 
@@ -190,7 +152,6 @@ jobs:
   merge:
     runs-on: ubuntu-latest
     environment: release
-    # if: (github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call')
     needs:
       - build
     steps:
@@ -232,12 +193,13 @@ jobs:
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v5
+        # Disable all but the raw and sha
         with:
           #ADD LATER
-          # public.ecr.aws/mcp/awslabs/${{ inputs.image || 'core-mcp-server' }}
-          # ghcr.io/awslabs/mcp/awslabs/${{ inputs.image || 'core-mcp-server' }}
+          # public.ecr.aws/mcp/awslabs/${{ inputs.image }}
+          # ghcr.io/awslabs/mcp/awslabs/${{ inputs.image }}
           images: |
-            docker.io/awslabs/${{ inputs.image || 'core-mcp-server' }}
+            docker.io/awslabs/${{ inputs.image }}
 
           # Disable all but the raw and sha
           tags: |
@@ -251,23 +213,22 @@ jobs:
             type=ref,event=pr,enable=false
             type=sha,format=long,enable=true
             type=raw,value=latest,enable=true # {{is_default_branch}} doesn't work
-            type=raw,value=${{ inputs.version || '0.0.0' }},enable=${{ inputs.version || 'false' }}
-          # Override because it is a monorepo
+            type=raw,value=${{ inputs.version || github.sha }},enable=${{ inputs.version || 'false' }}
           labels: |
             maintainer=AWSLabs MCP
-            org.opencontainers.image.description=Test Description
-            org.opencontainers.image.source=https://github.com/awslabs/mcp/tree/main/src/${{ inputs.image || 'core-mcp-server' }}
-            org.opencontainers.image.title=awslabs.${{ inputs.image || 'core-mcp-server' }}
-            org.opencontainers.image.url=https://github.com/awslabs/mcp/tree/main/src/${{ inputs.image || 'core-mcp-server' }}
-            org.opencontainers.image.version=${{ inputs.version || '0.0.0' }}
+            org.opencontainers.image.description=AWS Labs ${{ inputs.image }} MCP Server
+            org.opencontainers.image.source=https://github.com/awslabs/mcp/tree/main/src/${{ inputs.image }}
+            org.opencontainers.image.title=awslabs.${{ inputs.image }}
+            org.opencontainers.image.url=https://github.com/awslabs/mcp/tree/main/src/${{ inputs.image }}
+            org.opencontainers.image.version=${{ inputs.version || github.sha }}
             org.opencontainers.image.vendor=Amazon Web Service, Inc.
-
+  
       - name: Create manifest list and push
         working-directory: ${{ runner.temp }}/digests
         run: |
           docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            $(printf 'awslabs/${{ inputs.image || 'core-mcp-server' }}@sha256:%s ' *)
+            $(printf 'awslabs/${{ inputs.image }}@sha256:%s ' *)
 
       - name: Inspect image
         run: |
-          docker buildx imagetools inspect awslabs/${{ inputs.image || 'core-mcp-server' }}:${{ steps.meta.outputs.version }}
+          docker buildx imagetools inspect awslabs/${{ inputs.image }}:${{ steps.meta.outputs.version }}
