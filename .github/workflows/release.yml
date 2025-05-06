@@ -168,7 +168,7 @@ jobs:
         uses: ./.github/workflows/build-and-push-container-image.yml
         if: hashFiles(src/${{ matrix.package }}/Dockerfile)
         with:
-          secrets: inherit
+          secrets: inherit # pragma: allowlist secret
           tags: ${{ matrix.package }}
           version: '' # for now everything is the latest or by sha commit
           context: src/${{ matrix.package }}

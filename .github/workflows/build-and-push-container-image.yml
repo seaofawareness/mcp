@@ -221,7 +221,7 @@ jobs:
             org.opencontainers.image.url=https://github.com/awslabs/mcp/tree/main/src/${{ inputs.image }}
             org.opencontainers.image.version=${{ inputs.version || github.sha }}
             org.opencontainers.image.vendor=Amazon Web Service, Inc.
-  
+
       - name: Create manifest list and push
         working-directory: ${{ runner.temp }}/digests
         run: |
