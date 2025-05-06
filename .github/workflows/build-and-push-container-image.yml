@@ -109,6 +109,7 @@ jobs:
             type=ref,event=tag,enable=false
             type=ref,event=pr,enable=false
             type=sha,format=long,enable=true
+            type=raw,value=latest,enable={{is_default_branch}}
             type=raw,value=${{ inputs.version || '0.0.0' }},enable=${{ inputs.version || 'false' }}
           labels: |
             maintainer=AWSLabs MCP
@@ -240,6 +241,7 @@ jobs:
             type=ref,event=tag,enable=false
             type=ref,event=pr,enable=false
             type=sha,format=long,enable=true
+            type=raw,value=latest,enable={{is_default_branch}}
             type=raw,value=${{ inputs.version || '0.0.0' }},enable=${{ inputs.version || 'false' }}
           # Override because it is a monorepo
           labels: |
