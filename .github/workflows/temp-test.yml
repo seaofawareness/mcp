@@ -27,20 +27,17 @@ jobs:
         package:
           - core-mcp-server
           - git-repo-research-mcp-server
-    # steps:
-    #   - name: Checkout repository
-    #     id: checkout-repository
-    #     uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-    #   - name: Check the Reusable Workflow
-    #     run: |
-    #       ls -l .github/workflows/build-and-push-container-image.yml
-    #       cat .github/workflows/build-and-push-container-image.yml
-    #   - name: Build and Publish Image
-    #     # if: hashFiles('./src/core-mcp-server/Dockerfile')
-    #     uses: awslabs/mcp/.github/workflows/build-and-push-container-image.yml@${{ github.sha256}}
-    #     with:
-    #       secrets: inherit
-    #       tags: core-mcp-server
-    #       version: '' # for now everything is the latest or by sha commit
-    #       context: ./src/core-mcp-server
-    #       file: ./src/core-mcp-server/Dockerfile
+
+  next-jobs:
+    name: Next Job
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest     
+    steps:
+      - run: |
+          echo "go"
+      - uses: awslabs/mcp/.github/actions/build-and-push-container-image@feature/push-container-images
+        with:
+          secrets: inherit
+          image: 'test-mcp-server'
+          version: 'TBD'

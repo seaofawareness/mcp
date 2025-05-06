@@ -1,0 +1,56 @@
+---
+# This local action builds an image and pushes it to registries
+name: "Build and push image"
+author: "AWS Labs MCP"
+description: "Builds an image and pushes it to registries"
+
+# USAGE
+#
+# - name: Build and Push Container Image
+#   id: build-and-push-container-image
+#   uses: ./.github/actions/build-and-push-container-image
+#   with:
+#     image: "core-mcp-server"
+#     version: "0.0.0"
+# - name: Step to demonstrate how to access outputs (no need for this)
+#   id: echo-output
+#   run: |
+#     echo "version: ${VERSION}"
+#   env:
+#     VERSION: ${{ steps.build-and-push-container-image.outputs.version}}
+
+branding:
+  icon: 'anchor' # for shipping container ¯\_(ツ)_/¯
+  color: 'purple'
+
+inputs:
+  image:
+    description: 'The image'
+    type: string
+    required: true
+  version:
+    default: ''
+    description: 'The version to associate to the image'
+    type: string
+    required: false
+
+outputs:
+  version:
+    description: 'The version uploaded'
+    value: ${{ steps.get-version.outputs.version }}
+
+runs:
+  using: "composite"
+  steps:
+    - id: get-version
+      name: Workflow ${{ github.workflow }} Job ${{ github.job }} Action ${{ github.action }} Number ${{ github.run_number }} Attempt ${{ github.run_attempt }}
+      working-directory: ${{ env.GITHUB_WORKSPACE }}
+      run: |
+        echo "Is there an ${{ inputs.image }}???"
+        pwd
+        ls -al .
+        echo "Reporting the input version as the output version..."
+        echo version="${{ inputs.version }}" >>"$GITHUB_OUTPUT"
+      env:
+        IMAGE: ${{ inputs.image }}
+      shell: bash
