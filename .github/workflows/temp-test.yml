@@ -8,7 +8,7 @@ on:
 permissions: {}
 
 jobs:
-  go:
+  go-go-reusable-workflow:
     runs-on: ubuntu-latest
     environment: release
     permissions:
@@ -19,12 +19,16 @@ jobs:
       - name: Checkout repository
         id: checkout-repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Check the Reusable Workflow
+        run: |
+          ls -l .github/workflows/build-and-push-container-image.yml
+          cat .github/workflows/build-and-push-container-image.yml
       - name: Build and Publish Image
-        uses: ./.github/workflows/build-and-push-container-image.yml
-        if: hashFiles('src/core-mcp-server/Dockerfile')
+        # if: hashFiles('./src/core-mcp-server/Dockerfile')
+        uses: awslabs/mcp/.github/workflows/build-and-push-container-image.yml@${{ github.sha256}}
         with:
           secrets: inherit
           tags: core-mcp-server
           version: '' # for now everything is the latest or by sha commit
-          context: src/core-mcp-server
-          file: src/core-mcp-server/Dockerfile
+          context: ./src/core-mcp-server
+          file: ./src/core-mcp-server/Dockerfile
