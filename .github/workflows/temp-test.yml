@@ -13,7 +13,7 @@ jobs:
     with:
       secrets: inherit
       tags: core-mcp-server
-      version: '' # for now everything is the latest or by sha commit
+      version: TBD # for now everything is the latest or by sha commit
       context: ./src/core-mcp-server
       file: ./src/core-mcp-server/Dockerfile
 
