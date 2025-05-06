@@ -103,14 +103,14 @@ jobs:
             type=schedule,enable=false
             type=semver,pattern={{raw}},enable=false
             type=pep440,pattern={{raw}},enable=false
-            type=match,pattern=v(.*),group=1,enable=false
+            type=match,pattern=(.*),group=1,enable=false
             type=edge,enable=false
             type=ref,event=branch,enable=false
             type=ref,event=tag,enable=false
             type=ref,event=pr,enable=false
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha,format=long,enable=true
-            type=raw,value=${{ inputs.version || '0.0.0' }},enable=${{ inputs.version }}
+            type=raw,value=${{ inputs.version || '0.0.0' }},enable=${{ inputs.version || 'false' }}
           # Override because it is a monorepo
           labels: |
             maintainer=AWSLabs MCP
@@ -209,14 +209,14 @@ jobs:
             type=schedule,enable=false
             type=semver,pattern={{raw}},enable=false
             type=pep440,pattern={{raw}},enable=false
-            type=match,pattern=v(.*),group=1,enable=false
+            type=match,pattern=(.*),group=1,enable=false
             type=edge,enable=false
             type=ref,event=branch,enable=false
             type=ref,event=tag,enable=false
             type=ref,event=pr,enable=false
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha,format=long,enable=true
-            type=raw,value=${{ inputs.version || '0.0.0' }},enable=${{ inputs.version }}
+            type=raw,value=${{ inputs.version || '0.0.0' }},enable=${{ inputs.version || 'false' }}
 
       - name: Create manifest list and push
         working-directory: ${{ runner.temp }}/digests
