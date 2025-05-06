@@ -24,7 +24,7 @@ on:
         description: 'The Dockerfile full path'
         type: string
         required: false
-  
+
   workflow_call:
     inputs:
       image:
@@ -43,7 +43,7 @@ on:
         description: 'The Dockerfile full path'
         type: string
         required: false
-        
+
     # jobs:
     #   pass-secrets-to-workflow:
     #     uses: ./.github/workflows/build-and-push-container-image.yml
@@ -107,7 +107,7 @@ jobs:
           # ghcr.io/awslabs/mcp/awslabs/${{ inputs.image || 'core-mcp-server' }}
           images: |
             docker.io/awslabs/${{ inputs.image || 'core-mcp-server' }}
-          
+
           # Disable all but the raw and sha
           tags: |
             type=schedule,enable=false
@@ -239,7 +239,7 @@ jobs:
           # ghcr.io/awslabs/mcp/awslabs/${{ inputs.image || 'core-mcp-server' }}
           images: |
             docker.io/awslabs/${{ inputs.image || 'core-mcp-server' }}
-          
+
           # Disable all but the raw and sha
           tags: |
             type=schedule,enable=false
@@ -262,7 +262,7 @@ jobs:
             org.opencontainers.image.url=https://github.com/awslabs/mcp/tree/main/src/${{ inputs.image || 'core-mcp-server' }}
             org.opencontainers.image.version=${{ inputs.version || '0.0.0' }}
             org.opencontainers.image.vendor=Amazon Web Service, Inc.
-  
+
       - name: Create manifest list and push
         working-directory: ${{ runner.temp }}/digests
         run: |
