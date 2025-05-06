@@ -95,7 +95,7 @@ jobs:
           #ADD LATER
           # ${{ inputs.tags || 'public.ecr.aws/mcp/awslabs/core-mcp-server' }}
           images: |
-            ${{ inputs.tags || 'awslabs/core-mcp-server' }}
+            ${{ inputs.tags || 'docker.io/awslabs/core-mcp-server' }}
             ${{ inputs.tags || 'ghcr.io/awslabs/mcp/awslabs/core-mcp-server' }}
           
           # Disable all but the raw and sha
@@ -108,7 +108,6 @@ jobs:
             type=ref,event=branch,enable=false
             type=ref,event=tag,enable=false
             type=ref,event=pr,enable=false
-            type=raw,value=latest,enable={{is_default_branch}}
             type=sha,format=long,enable=true
             type=raw,value=${{ inputs.version || '0.0.0' }},enable=${{ inputs.version || 'false' }}
           # Override because it is a monorepo
@@ -215,7 +214,6 @@ jobs:
             type=ref,event=branch,enable=false
             type=ref,event=tag,enable=false
             type=ref,event=pr,enable=false
-            type=raw,value=latest,enable={{is_default_branch}}
             type=sha,format=long,enable=true
             type=raw,value=${{ inputs.version || '0.0.0' }},enable=${{ inputs.version || 'false' }}
 
