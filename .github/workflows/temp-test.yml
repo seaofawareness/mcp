@@ -36,6 +36,9 @@ jobs:
         with:
           image: ${{ matrix.package }}
           version: ${{ github.sha }}
+          docker-hub-username: ${{ secrets.DOCKERHUB_USERNAME }}
+          docker-hub-token: $${{ secrets.DOCKERHUB_TOKEN }}
+          github-container-registry-token: ${{ secrets.BOT_GITHUB_TOKEN }}
 
       - name: Display Image Version ${{ matrix.package }}
         id: display-image-version

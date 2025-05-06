@@ -34,6 +34,21 @@ inputs:
     description: 'The version to associate to the image'
     type: string
     required: false
+  docker-hub-username:
+    default: ${{ github.actor }}
+    description: 'The Docker Hub username'
+    type: string
+    required: false
+  docker-hub-token:
+    default: ${{ github.token }}
+    description: 'The Docker Hub token'
+    type: string
+    required: false
+  github-container-registry-token:
+    default: ${{ github.token }}
+    description: 'The GitHub Container Registry token'
+    type: string
+    required: false
 
 outputs:
   version:
@@ -79,8 +94,8 @@ runs:
       id: login-docker-hub
       uses: docker/login-action@v3
       with:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
+        username: ${{ inputs.docker-hub-username }}
+        password: ${{ inputs.docker-hub-token }}
 
     - name: Login to GitHub Container Registry
       id: login-github-container-registry
@@ -88,7 +103,7 @@ runs:
       with:
         registry: ghcr.io
         username: awslabs-mcp
-        password: ${{ secrets.BOT_GITHUB_TOKEN }}
+        password: ${{ inputs.github-container-registry-token }}
 
     # - name: Login to Public ECR
     #   uses: docker/login-action@v3
