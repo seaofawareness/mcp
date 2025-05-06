@@ -153,6 +153,9 @@ runs:
         file: ./src/${{ inputs.image }}/Dockerfile
         push: true
         outputs: type=image,push-by-digest=true,name-canonical=true,push=true
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        github-token: ${{ inputs.github-container-registry-token }}
 
     - name: Export digest
       run: |
