@@ -49,10 +49,9 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Skip Determinator
+        if: hashFiles(format('./src/{0}/Dockerfile', inputs.image))
         run: |
-          echo "Does \"./src/${{ inputs.image }}/Dockerfile\" exists?"
-          ls -al ./src/${{ inputs.image }}/Dockerfile
-          echo "${{ toJson(hashFiles('./src/**/Dockerfile')) }}"
+          echo "\"${{ format('./src/{0}/Dockerfile', inputs.image) }}\" exists!!!!"
 
       - name: Prepare
         run: |
