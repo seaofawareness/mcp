@@ -2,9 +2,9 @@
 # Builds a multi-architecture image based on input path
 name: Build and Push Container Image
 on:
-  # Temporary to get started...
-  push:
-    branches: ["feature/push-container-images"]
+  # # Temporary to get started...
+  # push:
+  #   branches: ["feature/push-container-images"]
 
   workflow_dispatch:
     inputs:
@@ -71,7 +71,7 @@ jobs:
     permissions:
       contents: read
       packages: write
-    #if: (github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call')
+    if: (github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call')
     strategy:
       fail-fast: false
       matrix:
