@@ -50,7 +50,7 @@ jobs:
           echo "version: ${VERSION}"
         env:
           VERSION: ${{ steps.build-and-publish.outputs.version }}
-      
+
       - name: Continue
         run: |
           echo "continue"
