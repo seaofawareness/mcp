@@ -39,9 +39,9 @@ inputs:
     description: 'The Docker Hub username'
     type: string
     required: false
-  docker-hub-token:
+  docker-hub-password:
     default: ${{ github.token }}
-    description: 'The Docker Hub token'
+    description: 'The Docker Hub password or token'
     type: string
     required: false
   github-container-registry-token:
@@ -95,15 +95,15 @@ runs:
       uses: docker/login-action@v3
       with:
         username: ${{ inputs.docker-hub-username }}
-        password: ${{ inputs.docker-hub-token }}
+        password: ${{ inputs.docker-hub-password }}
 
-    - name: Login to GitHub Container Registry
-      id: login-github-container-registry
-      uses: docker/login-action@v3
-      with:
-        registry: ghcr.io
-        username: awslabs-mcp
-        password: ${{ inputs.github-container-registry-token }}
+    # - name: Login to GitHub Container Registry
+    #   id: login-github-container-registry
+    #   uses: docker/login-action@v3
+    #   with:
+    #     registry: ghcr.io
+    #     username: awslabs-mcp
+    #     password: ${{ inputs.github-container-registry-token }}
 
     # - name: Login to Public ECR
     #   uses: docker/login-action@v3
