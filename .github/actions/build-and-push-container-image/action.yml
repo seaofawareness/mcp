@@ -20,6 +20,7 @@ description: "Builds an image and pushes it to registries"
 #     VERSION: ${{ steps.build-and-push-container-image.outputs.version}}
 
 branding:
+  # https://feathericons.com/
   icon: 'anchor' # for shipping container ¯\_(ツ)_/¯
   color: 'purple'
 
@@ -41,12 +42,6 @@ outputs:
 
 runs:
   using: "composite"
-  strategy:
-    fail-fast: false
-    matrix:
-      platform:
-        - linux/amd64
-        - linux/arm64
   steps:
     - id: get-version
       name: Workflow ${{ github.workflow }} Job ${{ github.job }} Action ${{ github.action }} Number ${{ github.run_number }} Attempt ${{ github.run_attempt }}

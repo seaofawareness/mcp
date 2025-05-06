@@ -8,7 +8,8 @@ on:
 permissions: {}
 
 jobs:
-  test-job:
+
+  test-action:
     name: Test Job
     permissions:
       contents: read
@@ -38,7 +39,7 @@ jobs:
 
       - name: Display Image Version ${{ matrix.package }}
         id: display-image-version
-        if: success()
+        if: success() && steps.build-and-publish.outcome == 'success'
         run: |
           echo "version: ${VERSION}"
         env:
