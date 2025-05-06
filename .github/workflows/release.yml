@@ -165,14 +165,11 @@ jobs:
           packages-dir: src/${{ matrix.package }}/dist
 
       - name: Build and Publish Image
-        uses: ./.github/workflows/build-and-push-container-image.yml
+        uses: .github/actions/build-and-push-container-image
         if: hashFiles(src/${{ matrix.package }}/Dockerfile)
         with:
-          secrets: inherit # pragma: allowlist secret
-          tags: ${{ matrix.package }}
+          image: ${{ matrix.package }}
           version: '' # for now everything is the latest or by sha commit
-          context: src/${{ matrix.package }}
-          file: src/${{ matrix.package }}/Dockerfile
 
   publish-npm:
     if: github.repository == 'awslabs/mcp' && needs.create-metadata.outputs.npm_packages != '[]' && needs.create-metadata.outputs.npm_packages != ''

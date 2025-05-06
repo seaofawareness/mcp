@@ -8,19 +8,13 @@ on:
 permissions: {}
 
 jobs:
-  go-go-reusable-workflow:
-    name: go-go ${{ matrix.package }}
-    # https://github.com/.github/workflows/tree/feature/push-container-images/build-and-push-container-image.yml
-    uses: awslabs/mcp/.github/workflows/build-and-push-container-image.yml@feature/push-container-images
-    # uses: .github/workflows/build-and-push-container-image.yml
+  test-job:
+    name: Test Job
     permissions:
       contents: read
       packages: write
-      actions: read
-    secrets: inherit # pragma: allowlist secret
-    with:
-      image: ${{ matrix.package }}
-      version: ${{ github.run_id }}
+    runs-on: ubuntu-latest
+    environment: release
     strategy:
       fail-fast: false
       matrix:
@@ -28,16 +22,27 @@ jobs:
           - core-mcp-server
           - git-repo-research-mcp-server
 
-  next-jobs:
-    name: Next Job
-    permissions:
-      contents: read
-    runs-on: ubuntu-latest     
     steps:
-      - run: |
-          echo "go"
-      - uses: awslabs/mcp/.github/actions/build-and-push-container-image@feature/push-container-images
+      - name: Checkout repository
+        id: checkout-repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Build and Publish ${{ matrix.package }}
+        id: build-and-publish
+        uses: .github/actions/build-and-push-container-image
+        if: hashFiles(format('./src/{0}/Dockerfile', matrix.package))
         with:
-          secrets: inherit
-          image: 'test-mcp-server'
-          version: 'TBD'
+          image: ${{ matrix.package }}
+          version: ${{ github.sha }}
+
+      - name: Display Image Version ${{ matrix.package }}
+        id: display-image-version
+        if: success()
+        run: |
+          echo "version: ${VERSION}"
+        env:
+          VERSION: ${{ steps.build-and-publish.outputs.version }}
+      
+      - name: Continue
+        run: |
+          echo "continue"
